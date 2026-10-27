@@ -2,18 +2,6 @@
 -- PROYECTO: TutorConnect - TecNM Campus Pachuca
 -- ESQUEMA DE BASE DE DATOS - VERSION V3 (alcance alcanzable)
 -- Gestor: PostgreSQL (Supabase). Se ejecuta completo en el SQL Editor.
---
--- Cambios principales respecto a V2:
---  * Se elimina franja_disponibilidad.estado_slot: el estado de la franja
---    (Libre / Congelado / Ocupado) se CALCULA a partir de sus solicitudes.
---  * solicitud_tutor se generaliza como asesor_materia (alumnos y profesores).
---  * Se agregan las tablas carrera y notificacion.
---  * Nuevo estado 'Sin registro' para citas aceptadas que el asesor nunca cerro.
---  * Toda escritura importante pasa por funciones (rpc) que validan rol y reglas.
---  * Los vencimientos (caducidad y cierre) se procesan con una sola funcion
---    que se llama al inicio de cada operacion; pg_cron es opcional.
--- Horas: se interpretan en America/Mexico_City.
--- =====================================================================
 
 -- ---------------------------------------------------------------------
 -- 1. TABLAS
