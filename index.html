@@ -2,9 +2,66 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>TutorConnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorConnect · Iniciar sesión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
-  <h1>TutorConnect inicios</h1>
+<body class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+
+  <main class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+    <!-- Encabezado -->
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-blue-900">TutorConnect</h1>
+      <p class="text-sm text-slate-500">Conecta, aprende y avanza</p>
+    </div>
+
+    <!-- Pestañas: Iniciar sesión (T11) / Registrarse (T10) -->
+    <div class="flex mb-6 border-b">
+      <button id="tab-login" class="flex-1 pb-2 font-semibold text-blue-900 border-b-2 border-blue-900">
+        Iniciar sesión
+      </button>
+      <button id="tab-registro" class="flex-1 pb-2 font-semibold text-slate-400">
+        Registrarse
+      </button>
+    </div>
+
+    <!-- ===================== INICIO DE SESIÓN (T11 · TC-14) ===================== -->
+    <section id="seccion-login">
+      <!-- Zona de mensajes de error -->
+      <div id="login-error" class="hidden mb-4 rounded-lg bg-red-100 text-red-700 text-sm p-3" role="alert"></div>
+
+      <form id="form-login" novalidate class="space-y-4">
+        <div>
+          <label for="login-correo" class="block text-sm font-medium text-slate-700">Correo institucional</label>
+          <input id="login-correo" type="email" autocomplete="email" required
+                 placeholder="l12345678@pachuca.tecnm.mx"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <p id="login-correo-aviso" class="hidden mt-1 text-xs text-red-600">
+            Acceso restringido a cuentas institucionales
+          </p>
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-sm font-medium text-slate-700">Contraseña</label>
+          <input id="login-password" type="password" autocomplete="current-password" required
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
+        </div>
+
+        <button id="btn-login" type="submit"
+                class="w-full rounded-lg bg-blue-900 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">
+          Iniciar sesión
+        </button>
+      </form>
+    </section>
+
+    <!-- ===================== REGISTRO (T10 · TC-38, lo construye Sherlin) ===================== -->
+    <section id="seccion-registro" class="hidden">
+      <!-- El formulario de registro se agrega en la rama feature/registro -->
+    </section>
+  </main>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
