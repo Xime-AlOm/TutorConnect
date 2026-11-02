@@ -7,7 +7,4 @@ function iniciarSesion(e) {
     alert("Debe usar correo institucional");
     return;
   }
-  // Simulando auth de Supabase
-  localStorage.setItem('user_session', JSON.stringify({ correo, rol: 'Estudiante' }));
-  window.location.href = 'buscar.html';
 }
