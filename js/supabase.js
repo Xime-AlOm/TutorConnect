@@ -8,7 +8,7 @@
 
 // 1. Datos del proyecto (Supabase > Project Settings > API).
 //    Solo la clave pública "anon". La service_role NUNCA va aquí.
-const SUPABASE_URL = ''https://vdeksifprzazbsohniga.supabase.co';
+const SUPABASE_URL = 'https://vdeksifprzazbsohniga.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_y6fiMx-jISNovoNzQiOVnA_LoX3WkcL';
 
 // 2. Cliente único que usan todas las páginas.
