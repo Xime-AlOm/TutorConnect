@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body {
+  font-family: 'Inter', sans-serif;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Animaciones para Notificaciones y Modales */
+.toast-anim {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-anim {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}

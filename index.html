@@ -1,10 +1,84 @@
+<!--hola este es mi comentario de prueba-->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>TutorConnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorConnect - Iniciar Sesión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/auth.js" defer></script>
 </head>
-<body>
-  <h1>TutorConnect inicios</h1>
+<body class="bg-[#1B396A] flex min-h-screen w-full m-0 p-0 overflow-x-hidden">
+  
+  <div class="w-full flex flex-col md:flex-row min-h-screen bg-[#1B396A]">
+    
+    <!-- Panel Izquierdo Institucional (Azul) -->
+    <div class="md:w-[55%] p-8 md:p-16 lg:p-20 xl:p-28 text-white flex flex-col justify-center h-full min-h-screen">
+      <div class="flex items-center space-x-3 mb-6">
+        <span class="bg-white text-[#1B396A] font-bold px-3 py-1.5 rounded text-xs sm:text-sm tracking-widest shadow-sm">TecNM</span>
+        <!-- Título principal responsivo escalable (crece con la pantalla) -->
+        <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">TutorConnect</h1>
+      </div>
+      
+      <!-- Subtítulo escalable -->
+      <p class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium mb-10 text-blue-50">Conecta, aprende y avanza</p>
+      
+      <!-- Lista de beneficios escalables -->
+      <ul class="space-y-4 sm:space-y-6 text-sm sm:text-base md:text-lg lg:text-xl text-slate-100">
+        <li class="flex items-center">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+          Encuentra asesores por materia
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+          Reserva bloques de una hora
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+          Recibe confirmación y recordatorios
+        </li>
+      </ul>
+    </div>
+
+    <!-- Panel Derecho Login (Blanco) -->
+    <div class="md:w-[45%] flex flex-col justify-center bg-white h-full min-h-screen border-l border-slate-200">
+      <div class="max-w-[440px] w-full mx-auto p-8 sm:p-12 md:p-10">
+        
+        <!-- Títulos de inicio de sesión escalables -->
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-[#0F172A] mb-2">Iniciar sesión</h2>
+        <p class="text-sm sm:text-base text-[#64748B] mb-8">Usa tu correo institucional</p>
+
+        <form onsubmit="iniciarSesion(event)" class="space-y-6">
+          <div>
+            <label class="block text-xs sm:text-sm font-semibold text-[#475569] mb-2">Correo institucional</label>
+            <input type="email" id="correo" value="l20200123@pachuca.tecnm.mx" required 
+                   class="w-full px-4 py-3 border-2 border-emerald-500 rounded-lg focus:ring-4 focus:ring-emerald-100 outline-none transition text-sm sm:text-base">
+            <p class="text-xs sm:text-sm text-emerald-600 mt-2 flex items-center font-semibold tracking-tight">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+              Correo institucional válido
+            </p>
+          </div>
+          
+          <div>
+            <label class="block text-xs sm:text-sm font-semibold text-[#475569] mb-2">Contraseña</label>
+            <input type="password" id="password" value="********" required 
+                   class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1B396A] outline-none transition text-sm sm:text-base shadow-sm">
+          </div>
+          
+          <button type="submit" class="w-full bg-[#1e3a6a] hover:bg-[#152a4e] text-white font-bold py-3.5 rounded-lg transition mt-4 text-sm sm:text-base shadow-md">
+            Iniciar sesión
+          </button>
+          
+          <div class="text-center mt-6">
+            <a href="#" class="text-sm sm:text-base text-[#0284c7] hover:text-[#0369a1] hover:underline font-medium transition">¿No tienes cuenta? Regístrate</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+  </div>
+
 </body>
 </html>
