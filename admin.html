@@ -1,3 +1,179 @@
-Hola tonotos
-Adios tonotos
-holi
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorConnect - Administración</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body class="bg-[#F8FAFC] flex min-h-screen w-full m-0 p-0 overflow-x-hidden flex-col">
+
+  <!-- Header a todo lo ancho -->
+  <header class="bg-[#1B396A] text-white w-full shadow-sm">
+    <div class="w-full px-4 sm:px-6 lg:px-12 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer">
+        <span class="bg-white text-[#1B396A] font-bold px-2.5 py-1 rounded text-xs tracking-wider shadow-sm">TecNM</span>
+        <span class="font-bold text-lg tracking-tight">TutorConnect</span>
+      </div>
+      
+      <!-- Navegación Responsiva -->
+      <nav class="hidden md:flex space-x-8 text-sm font-medium">
+        <a href="index.html" class="text-slate-300 hover:text-white transition">Inicio</a>
+        <a href="admin.html" class="border-b-2 border-white pb-1 text-white">Administración</a>
+        <a href="buscar.html" class="text-slate-300 hover:text-white transition">Catálogo</a>
+        <a href="perfil.html" class="text-slate-300 hover:text-white transition">Perfil</a>
+      </nav>
+      
+      <div class="flex items-center space-x-4">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-900 flex items-center justify-center font-bold text-xs shadow-sm border border-indigo-200">
+          CO
+        </div>
+        <button class="md:hidden text-white hover:text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal (w-full) -->
+  <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1">
+    
+    <!-- Título y Selector de Periodo -->
+    <div class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Panel de administración</h1>
+      <div class="mt-2 inline-flex items-center cursor-pointer text-slate-500 hover:text-slate-700 transition">
+        <span class="text-sm font-semibold">Periodo: agosto – diciembre 2026</span>
+        <svg class="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+      </div>
+    </div>
+
+    <!-- Indicadores Estadísticos (Tarjetas Superiores) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 w-full">
+      
+      <!-- Solicitadas -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+        <p class="text-sm font-semibold text-slate-600">Solicitadas</p>
+        <div class="w-8 h-1 bg-[#1B396A] rounded-full mt-3"></div>
+      </div>
+      
+      <!-- Realizadas -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+        <p class="text-sm font-semibold text-slate-600">Realizadas</p>
+        <div class="w-8 h-1 bg-emerald-600 rounded-full mt-3"></div>
+      </div>
+      
+      <!-- Canceladas / No Realizadas -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+        <p class="text-sm font-semibold text-slate-600">Canceladas / no realizadas</p>
+        <div class="w-8 h-1 bg-rose-600 rounded-full mt-3"></div>
+      </div>
+      
+      <!-- Calificación Promedio -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+        <p class="text-sm font-semibold text-slate-600">Calificación promedio</p>
+        <div class="flex items-center space-x-2 mt-2">
+          <div class="w-8 h-1 bg-amber-500 rounded-full"></div>
+          <svg class="w-6 h-6 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Sección de Gráficos y Tablas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full">
+      
+      <!-- Gráfico de Demanda por materia -->
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-6">Demanda por materia</h2>
+        
+        <div class="space-y-5">
+          <!-- Item 1 -->
+          <div class="flex flex-col sm:flex-row sm:items-center">
+            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Cálculo Diferencial</span>
+            <div class="flex-1">
+              <div class="h-3.5 bg-[#0284c7] rounded-full w-[80%]"></div>
+            </div>
+          </div>
+          
+          <!-- Item 2 -->
+          <div class="flex flex-col sm:flex-row sm:items-center">
+            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0 leading-tight">Prog. Orientada a<br>Obj.</span>
+            <div class="flex-1">
+              <div class="h-3.5 bg-[#0284c7] rounded-full w-[65%]"></div>
+            </div>
+          </div>
+          
+          <!-- Item 3 -->
+          <div class="flex flex-col sm:flex-row sm:items-center">
+            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0 leading-tight">Estructura de<br>Datos</span>
+            <div class="flex-1">
+              <div class="h-3.5 bg-[#0284c7] rounded-full w-[50%]"></div>
+            </div>
+          </div>
+          
+          <!-- Item 4 -->
+          <div class="flex flex-col sm:flex-row sm:items-center">
+            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Física General</span>
+            <div class="flex-1">
+              <div class="h-3.5 bg-[#0284c7] rounded-full w-[30%]"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Postulaciones -->
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <h2 class="text-lg font-bold text-slate-900 mb-4">Postulaciones de tutores pares</h2>
+        
+        <!-- Contenedor responsive para tabla -->
+        <div class="overflow-x-auto w-full border border-slate-200 rounded-lg flex-1">
+          <table class="w-full min-w-[500px] text-left text-sm text-slate-700">
+            <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold">
+              <tr>
+                <th class="px-4 py-3">Estudiante</th>
+                <th class="px-4 py-3">Materia</th>
+                <th class="px-4 py-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+              
+              <tr class="hover:bg-slate-50 transition">
+                <td class="px-4 py-3.5 font-medium text-slate-900">Carlos Mendoza</td>
+                <td class="px-4 py-3.5">Estructura de Datos</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex space-x-2">
+                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
+                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
+                  </div>
+                </td>
+              </tr>
+              
+              <tr class="hover:bg-slate-50 transition">
+                <td class="px-4 py-3.5 font-medium text-slate-900">Paola Ortiz</td>
+                <td class="px-4 py-3.5">Cálculo Integral</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex space-x-2">
+                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
+                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
+                  </div>
+                </td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+      
+    </div>
+
+  </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/sesion.js"></script>
+<script>
+  iniciarPaginaProtegida('Coordinador');
+</script>
+</body>
+</html>
