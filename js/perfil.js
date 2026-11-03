@@ -1,14 +1,21 @@
 // =====================================================================
 // js/perfil.js · Mi perfil (T11 · TC-14 · SCR-008)
-// Requiere: js/supabase.js (cliente `db`) y js/auth.js (cerrarSesion)
+// Requiere: js/supabase.js (db, mostrarError) y js/sesion.js
+// (iniciarPaginaProtegida, usuarioActual, cerrarSesion).
+// El botón «Cerrar sesión» (id="btn-cerrar-sesion") lo conecta sesion.js.
 // =====================================================================
 
-function dato(etiqueta, valor) {
-  return `
-    <div>
-      <dt class="text-xs uppercase tracking-wide text-slate-500">${etiqueta}</dt>
-      <dd class="font-medium text-slate-800">${valor ?? '—'}</dd>
-    </div>`;
+// Iniciales para los círculos de avatar («Laura Gómez» → «LG»)
+function iniciales(nombre) {
+  return nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+}
+
+function escribir(id, valor) {
+  document.getElementById(id).textContent = valor ?? '—';
+}
+
+function mostrarBloque(id, visible) {
+  document.getElementById(id).classList.toggle('hidden', !visible);
 }
 
 function estrellas(promedio) {
@@ -17,59 +24,57 @@ function estrellas(promedio) {
 }
 
 async function cargarPerfil() {
-  const { data: sesion } = await db.auth.getSession();
-  if (!sesion.session) {
-    window.location.href = 'index.html';
-    return;
-  }
-  const idUsuario = sesion.session.user.id;
+  // Sesión, vencimientos, menú y botón «Cerrar sesión» (sesion.js)
+  const perfil = await iniciarPaginaProtegida();
+  if (!perfil) return;
 
-  // Perfil con el nombre de la carrera (relación usuario.id_carrera → carrera)
-  const { data: p, error } = await db
-    .from('usuario')
-    .select('nombre_completo, correo_institucional, rol, matricula_num_empleado, semestre, departamento, carrera(nombre_carrera)')
-    .eq('id_usuario', idUsuario)
-    .single();
-
-  if (error) {
-    const caja = document.getElementById('perfil-error');
-    caja.textContent = 'No se pudo cargar tu perfil.';
-    caja.classList.remove('hidden');
-    document.getElementById('perfil-datos').innerHTML = '';
-    return;
+  // Nombre de la carrera (relación usuario.id_carrera → carrera)
+  let carrera = null;
+  if (perfil.rol === 'Estudiante' && perfil.id_carrera) {
+    const { data, error } = await db
+      .from('carrera')
+      .select('nombre_carrera')
+      .eq('id_carrera', perfil.id_carrera)
+      .maybeSingle();
+    if (error) mostrarError(error.message);
+    carrera = data?.nombre_carrera;
   }
 
-  document.getElementById('perfil-rol').textContent = p.rol;
+  const nombre = perfil.nombre_completo;
+  escribir('perfil-nombre', nombre);
+  escribir('perfil-iniciales', iniciales(nombre));
+  escribir('avatar-iniciales', iniciales(nombre));
+  escribir('perfil-rol', perfil.rol);
+  escribir('perfil-correo', perfil.correo_institucional);
+  escribir('perfil-matricula', perfil.matricula_num_empleado);
 
-  let html = dato('Nombre', p.nombre_completo) + dato('Correo institucional', p.correo_institucional);
-  if (p.rol === 'Estudiante') {
-    html += dato('Matrícula', p.matricula_num_empleado)
-          + dato('Carrera', p.carrera?.nombre_carrera)
-          + dato('Semestre', p.semestre);
+  const esEstudiante = perfil.rol === 'Estudiante';
+  escribir('etiqueta-matricula', esEstudiante ? 'Matrícula / No. Control' : 'Número de empleado');
+  mostrarBloque('bloque-carrera', esEstudiante);
+  mostrarBloque('bloque-semestre', esEstudiante);
+  mostrarBloque('bloque-departamento', !esEstudiante);
+
+  if (esEstudiante) {
+    escribir('perfil-carrera', carrera);
+    escribir('perfil-semestre', perfil.semestre ? `${perfil.semestre}° Semestre` : null);
   } else {
-    html += dato('Número de empleado', p.matricula_num_empleado)
-          + dato('Departamento', p.departamento);
+    escribir('perfil-departamento', perfil.departamento);
   }
-  document.getElementById('perfil-datos').innerHTML = html;
 
   // Promedio público como asesor (vista v_promedio_asesor)
-  if (p.rol !== 'Coordinador') {
+  if (perfil.rol !== 'Coordinador') {
     const { data: prom } = await db
       .from('v_promedio_asesor')
       .select('promedio, num_evaluaciones')
-      .eq('id_asesor', idUsuario)
+      .eq('id_asesor', perfil.id_usuario)
       .maybeSingle();
 
-    const caja = document.getElementById('perfil-promedio');
-    const valor = document.getElementById('promedio-valor');
     if (prom && prom.num_evaluaciones > 0) {
-      valor.textContent = `${estrellas(prom.promedio)} ${prom.promedio} (${prom.num_evaluaciones} evaluaciones)`;
-      caja.classList.remove('hidden');
+      escribir('perfil-promedio',
+        `${estrellas(prom.promedio)} ${prom.promedio} como asesor (${prom.num_evaluaciones} evaluaciones)`);
+      mostrarBloque('perfil-promedio', true);
     }
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btn-salir').addEventListener('click', cerrarSesion);
-  cargarPerfil();
-});
+document.addEventListener('DOMContentLoaded', cargarPerfil);

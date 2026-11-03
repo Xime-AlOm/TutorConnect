@@ -1,6 +1,8 @@
 // =====================================================================
 // js/auth.js · Inicio y cierre de sesión (T11 · TC-14 · HU-001 · CU-001)
 // Requiere: js/supabase.js (crea el cliente `db`)
+// El cierre de sesión vive en js/sesion.js (cerrarSesion), que usan
+// todas las páginas protegidas.
 // =====================================================================
 
 const DOMINIO = '@pachuca.tecnm.mx';
@@ -61,27 +63,17 @@ async function iniciarSesion(evento) {
   }
 }
 
-// Cierra la sesión desde cualquier página
-async function cerrarSesion() {
-  await db.auth.signOut();
-  window.location.href = 'index.html';
-}
-
 // Si ya hay sesión activa, no tiene caso mostrar el login
 async function redirigirSiHaySesion() {
   const { data } = await db.auth.getSession();
   if (data.session) window.location.href = 'panel.html';
 }
 
-// Cambia entre las pestañas Iniciar sesión / Registrarse
+// Cambia entre las secciones Iniciar sesión / Registro (T10)
 function activarPestana(cual) {
   const esLogin = cual === 'login';
   document.getElementById('seccion-login').classList.toggle('hidden', !esLogin);
   document.getElementById('seccion-registro').classList.toggle('hidden', esLogin);
-  const activa = 'flex-1 pb-2 font-semibold text-blue-900 border-b-2 border-blue-900';
-  const inactiva = 'flex-1 pb-2 font-semibold text-slate-400';
-  document.getElementById('tab-login').className = esLogin ? activa : inactiva;
-  document.getElementById('tab-registro').className = esLogin ? inactiva : activa;
 }
 
 // Conecta los eventos solo si estamos en index.html
@@ -100,6 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').disabled = invalido;
   });
 
-  document.getElementById('tab-login').addEventListener('click', () => activarPestana('login'));
-  document.getElementById('tab-registro').addEventListener('click', () => activarPestana('registro'));
+  document.getElementById('ir-registro').addEventListener('click', (e) => {
+    e.preventDefault();
+    activarPestana('registro');
+  });
+  document.getElementById('ir-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    activarPestana('login');
+  });
 });
