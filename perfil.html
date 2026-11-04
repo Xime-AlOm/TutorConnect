@@ -20,15 +20,16 @@
       <!-- Navegación Responsiva -->
       <nav class="hidden md:flex space-x-8 text-sm font-medium">
         <a href="panel.html" class="text-slate-300 hover:text-white transition">Inicio</a>
-        <a href="buscar.html" class="text-slate-300 hover:text-white transition">Buscar asesoría</a>
-        <a href="solicitudes.html" class="text-slate-300 hover:text-white transition">Mis solicitudes</a>
-        <a href="postulacion.html" class="text-slate-300 hover:text-white transition">Postular como tutor</a>
+        <a href="buscar.html" data-rol="Estudiante" class="text-slate-300 hover:text-white transition">Buscar asesoría</a>
+        <a href="solicitudes.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition">Mis solicitudes</a>
+        <a href="postulacion.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition">Postular como tutor</a>
+        <a href="admin.html" data-rol="Coordinador" class="hidden text-slate-300 hover:text-white transition">Administración</a>
         <a href="perfil.html" class="border-b-2 border-white pb-1 text-white">Perfil</a>
       </nav>
       
       <div class="flex items-center space-x-4">
-        <div class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center font-bold text-xs shadow-sm cursor-pointer border border-blue-500">
-          LG
+        <div id="avatar-iniciales" class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center font-bold text-xs shadow-sm border border-blue-500">
+          
         </div>
         <button class="md:hidden text-white hover:text-slate-300">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -52,23 +53,26 @@
       <div class="md:col-span-1 flex flex-col space-y-6">
         <div class="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
           <!-- Avatar Grande -->
-          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-blue-100 text-[#1B396A] flex items-center justify-center font-bold text-3xl sm:text-4xl shadow-inner mb-4 border-4 border-white ring-2 ring-slate-100">
-            LG
+          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-blue-100 text-[#1B396A] flex items-center justify-center font-bold text-3xl sm:text-4xl shadow-inner mb-4 border-4 border-white ring-2 ring-slate-100" id="perfil-iniciales">
+            
           </div>
           
-          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">Laura Gómez</h2>
+          <h2 id="perfil-nombre" class="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">Cargando…</h2>
           
           <!-- Badge de Rol -->
-          <span class="mt-3 bg-[#1B396A] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wider shadow-sm">
-            ESTUDIANTE
+          <span id="perfil-rol" class="mt-3 bg-[#1B396A] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wider shadow-sm uppercase">
+            
           </span>
+
+          <!-- Promedio público como asesor (v_promedio_asesor); oculto si no tiene evaluaciones -->
+          <p id="perfil-promedio" class="hidden mt-4 text-sm font-semibold text-amber-600"></p>
 
           <p class="text-sm text-slate-500 mt-4 leading-relaxed">
             Cuenta activa bajo la política de seguridad institucional.
           </p>
 
           <div class="w-full border-t border-slate-100 mt-6 pt-6">
-            <button class="w-full bg-white border border-rose-300 hover:bg-rose-50 text-rose-600 font-bold py-2.5 rounded-lg shadow-sm transition text-sm">
+            <button id="btn-cerrar-sesion" class="w-full bg-white border border-rose-300 hover:bg-rose-50 text-rose-600 font-bold py-2.5 rounded-lg shadow-sm transition text-sm">
               Cerrar sesión
             </button>
           </div>
@@ -85,15 +89,15 @@
             <div>
               <label class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Correo institucional</label>
               <div class="flex items-center space-x-2 text-sm sm:text-base font-medium text-slate-900">
-                <span>l20200123@pachuca.tecnm.mx</span>
+                <span id="perfil-correo"></span>
                 <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
               </div>
             </div>
 
             <!-- Matrícula -->
             <div>
-              <label class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Matrícula / No. Control</label>
-              <p class="text-sm sm:text-base font-medium text-slate-900">20200123</p>
+              <label id="etiqueta-matricula" class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Matrícula / No. Control</label>
+              <p id="perfil-matricula" class="text-sm sm:text-base font-medium text-slate-900"></p>
             </div>
           </div>
 
@@ -101,21 +105,21 @@
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <!-- Carrera (Aplica a estudiantes) -->
-            <div>
+            <div id="bloque-carrera" class="hidden">
               <label class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Carrera</label>
-              <p class="text-sm sm:text-base font-medium text-slate-900">Ingeniería en Sistemas Computacionales</p>
+              <p id="perfil-carrera" class="text-sm sm:text-base font-medium text-slate-900"></p>
             </div>
 
             <!-- Semestre (Aplica a estudiantes) -->
-            <div>
+            <div id="bloque-semestre" class="hidden">
               <label class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Semestre actual</label>
-              <p class="text-sm sm:text-base font-medium text-slate-900">8° Semestre</p>
+              <p id="perfil-semestre" class="text-sm sm:text-base font-medium text-slate-900"></p>
             </div>
 
-            <!-- Departamento (Aplica a Profesores - Oculto por defecto en esta vista de alumno) -->
-            <div class="hidden">
+            <!-- Departamento (Aplica a Profesores y Coordinador) -->
+            <div id="bloque-departamento" class="hidden">
               <label class="block text-xs sm:text-sm font-semibold text-slate-500 mb-1">Departamento</label>
-              <p class="text-sm sm:text-base font-medium text-slate-900">Sistemas y Computación</p>
+              <p id="perfil-departamento" class="text-sm sm:text-base font-medium text-slate-900"></p>
             </div>
           </div>
 
@@ -130,5 +134,9 @@
       
     </div>
   </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/perfil.js"></script>
 </body>
 </html>
