@@ -318,7 +318,9 @@ BEGIN
   SELECT * INTO s FROM solicitud_asesoria WHERE id_solicitud_asesoria = p_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Solicitud no encontrada.'; END IF;
   SELECT * INTO f FROM franja_disponibilidad WHERE id_disponibilidad = s.id_disponibilidad;
-  IF f.id_asesor <> auth.uid() THEN RAISE EXCEPTION 'Esta solicitud no es tuya.'; END IF;
+  IF f.id_asesor IS DISTINCT FROM auth.uid() THEN
+  RAISE EXCEPTION 'Esta solicitud no es tuya.';
+END IF;
   IF s.estado <> 'Pendiente' THEN RAISE EXCEPTION 'La solicitud ya no está pendiente (%).', s.estado; END IF;
 
   IF NOT p_aceptar THEN
@@ -351,7 +353,10 @@ BEGIN
   SELECT * INTO s FROM solicitud_asesoria WHERE id_solicitud_asesoria = p_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Solicitud no encontrada.'; END IF;
   SELECT * INTO f FROM franja_disponibilidad WHERE id_disponibilidad = s.id_disponibilidad;
-  IF auth.uid() NOT IN (s.id_estudiante, f.id_asesor) THEN RAISE EXCEPTION 'Esta asesoría no es tuya.'; END IF;
+IF auth.uid() IS NULL
+   OR auth.uid() NOT IN (s.id_estudiante, f.id_asesor) THEN
+  RAISE EXCEPTION 'Esta asesoría no es tuya.';
+END IF;
 
   IF s.estado = 'Pendiente' AND auth.uid() = s.id_estudiante THEN
     NULL; -- retiro de una solicitud pendiente
@@ -378,7 +383,9 @@ BEGIN
   SELECT * INTO s FROM solicitud_asesoria WHERE id_solicitud_asesoria = p_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Solicitud no encontrada.'; END IF;
   SELECT * INTO f FROM franja_disponibilidad WHERE id_disponibilidad = s.id_disponibilidad;
-  IF f.id_asesor <> auth.uid() THEN RAISE EXCEPTION 'Esta asesoría no es tuya.'; END IF;
+  IF f.id_asesor IS DISTINCT FROM auth.uid() THEN
+  RAISE EXCEPTION 'Esta asesoría no es tuya.';
+END IF;
   IF s.estado <> 'Aceptada' THEN RAISE EXCEPTION 'Solo se cierran asesorías aceptadas (%).', s.estado; END IF;
   IF now() < f.fin THEN RAISE EXCEPTION 'La asesoría aún no termina.'; END IF;
   UPDATE solicitud_asesoria
@@ -394,7 +401,9 @@ RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE s solicitud_asesoria%ROWTYPE; f franja_disponibilidad%ROWTYPE;
 BEGIN
   SELECT * INTO s FROM solicitud_asesoria WHERE id_solicitud_asesoria = p_id;
-  IF NOT FOUND OR s.id_estudiante <> auth.uid() THEN RAISE EXCEPTION 'Asesoría no encontrada.'; END IF;
+  IF NOT FOUND OR s.id_estudiante IS DISTINCT FROM auth.uid() THEN
+  RAISE EXCEPTION 'Asesoría no encontrada.';
+END IF;
   IF s.estado <> 'Realizada' THEN RAISE EXCEPTION 'Solo se califican asesorías realizadas.'; END IF;
   SELECT * INTO f FROM franja_disponibilidad WHERE id_disponibilidad = s.id_disponibilidad;
   IF now() > f.fin + INTERVAL '7 days' THEN RAISE EXCEPTION 'El periodo de evaluación ha expirado.'; END IF;
