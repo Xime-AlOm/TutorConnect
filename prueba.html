@@ -6,8 +6,8 @@
   <title>TutorConnect | Prueba Supabase JS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script> 
 </head>
-<script src="js/supabase.js"></script>
 <body class="min-h-screen bg-slate-100 text-slate-800">
   <header class="bg-emerald-900 text-white">
     <div class="mx-auto max-w-6xl px-5 py-6">
@@ -174,14 +174,13 @@
       } else {
         data.forEach(row => {
           const values = [
-            pick(row, ['ubicacion_presencial', 'ubicacion', 'ubicación', 'lugar']),
-            pick(row, ['materia', 'nombre_materia']),
-            pick(row, ['asesor', 'nombre_asesor']),
-            pick(row, ['fecha']),
-            pick(row, ['hora', 'hora_inicio']),
-            pick(row, ['modalidad']),
-            pick(row, ['ubicacion', 'ubicación', 'lugar']),
-            pick(row, ['promedio', 'calificacion_promedio', 'calificación_promedio'])
+              pick(row, ['materia', 'nombre_materia']),
+              pick(row, ['asesor', 'nombre_asesor']),
+              pick(row, ['fecha']),
+              pick(row, ['hora', 'hora_inicio']),
+              pick(row, ['modalidad']),
+              pick(row, ['ubicacion_presencial', 'ubicacion', 'ubicación', 'lugar']),
+              pick(row, ['promedio', 'calificacion_promedio', 'calificación_promedio'])
           ];
           const tr = document.createElement('tr');
           values.forEach(value => {
