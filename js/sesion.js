@@ -68,19 +68,25 @@ function exigirRol(...roles) {
   return true;
 }
 
-// Devuelve true si el usuario tiene al menos una materia aprobada como asesor.
-// La vista v_postulaciones ya filtra por el usuario con sesión
-// (el Coordinador ve todas, por eso a él se le regresa false).
+/* ---------------------------------------------------------
+   esAsesorAprobado()
+   true si el usuario tiene al menos una materia con
+   estado_autorizacion = 'Aprobada' en v_postulaciones.
+   --------------------------------------------------------- */
 async function esAsesorAprobado() {
-  if (!usuarioActual || usuarioActual.rol === 'Coordinador') return false;
-  const { data, error } = await db
-    .from('v_postulaciones')
-    .select('estado_autorizacion')
-    .eq('estado_autorizacion', 'Aprobada')
-    .limit(1);
+  if (!usuarioActual) return false;
 
-  if (error) { mostrarError(error.message); return false; }
-  return data.length > 0;
+  const { count, error } = await db
+    .from('v_postulaciones')
+    .select('*', { count: 'exact', head: true })
+    .eq('id_usuario', usuarioActual.id_usuario) // ajustar si la vista usa otro nombre de columna
+    .eq('estado_autorizacion', 'Aprobada');
+
+  if (error) {
+    mostrarError(error.message);
+    return false;
+  }
+  return count > 0;
 }
 
 /* ---------------------------------------------------------
@@ -90,7 +96,7 @@ async function esAsesorAprobado() {
 function pintarCabecera() {
   const nombre = document.getElementById('nombre-usuario');
   const rol = document.getElementById('rol-usuario');
-  if (nombre) nombre.textContent = usuarioActual.nombre_completo;
+  if (nombre) nombre.textContent = usuarioActual.nombre;
   if (rol) rol.textContent = usuarioActual.rol;
 }
 
