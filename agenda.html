@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/estilos.css">
   <script src="js/franjas.js" defer></script>
 </head>
-<body>
+<body class="bg-[#F8FAFC] flex min-h-screen w-full m-0 p-0 overflow-x-hidden flex-col relative">
 
   <!-- Header a todo lo ancho -->
   <header class="bg-[#1B396A] text-white w-full shadow-sm">
@@ -18,79 +18,177 @@
         <span class="font-bold text-lg tracking-tight">TutorConnect</span>
       </div>
 
-      <!-- Navegación Responsiva -->
       <nav class="hidden md:flex space-x-8 text-sm font-medium">
         <a href="panel.html" class="text-slate-300 hover:text-white transition">Inicio</a>
-        <a href="buscar.html" data-rol="Estudiante" class="text-slate-300 hover:text-white transition">Buscar asesoría</a>
-        <a href="solicitudes.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition">Mis solicitudes</a>
-        <a href="postulacion.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition">Postular como tutor</a>
-        <a href="agenda.html" data-asesor class="border-b-2 border-white pb-1 text-white">Mi agenda</a>
+        <a href="buscar.html" data-rol="Estudiante" class="text-slate-300 hover:text-white transition hidden">Buscar asesoría</a>
+        <a href="solicitudes.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition hidden">Mis solicitudes</a>
+        <a href="postulacion.html" data-rol="Estudiante,Profesor" class="text-slate-300 hover:text-white transition hidden">Postular como tutor</a>
+        <a href="agenda.html" data-asesor class="border-b-2 border-white pb-1 text-white hidden">Mi agenda</a>
         <a href="admin.html" data-rol="Coordinador" class="hidden text-slate-300 hover:text-white transition">Administración</a>
         <a href="perfil.html" class="text-slate-300 hover:text-white transition">Perfil</a>
       </nav>
 
       <div class="flex items-center space-x-4">
-        <!-- Notificaciones -->
-        <button id="btn-campana" aria-label="Notificaciones" class="relative text-white hover:text-slate-300 transition">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-          <span id="campana-punto" class="hidden absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[#1B396A]"></span>
-        </button>
-        <!-- Badge de Usuario -->
-        <div id="avatar-iniciales" title="" class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center font-bold text-xs shadow-sm border border-blue-500"></div>
+        <div id="avatar-iniciales" class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center font-bold text-xs shadow-sm border border-blue-500"></div>
         <button id="btn-cerrar-sesion" class="hidden sm:inline-block text-xs font-semibold text-slate-200 hover:text-white border border-slate-400 hover:border-white rounded-lg px-3 py-1.5 transition">
           Cerrar sesión
-        </button>
-        <button class="md:hidden text-white hover:text-slate-300">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
       </div>
     </div>
   </header>
 
-  <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1">
+  <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1 max-w-6xl mx-auto">
     
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Mi agenda de atención</h1>
-        <p class="text-sm text-slate-500 mt-1">Bloques de una hora publicados</p>
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Mi agenda de atención</h1>
+          <p class="text-sm text-slate-500 mt-1">Bloques de una hora publicados para asesorías</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex border border-slate-200 rounded-lg overflow-hidden text-xs font-semibold">
+            <button onclick="cambiarFiltroAgenda('PROXIMAS')" id="tab-proximas" class="px-4 py-2.5 bg-[#1B396A] text-white transition">Próximas</button>
+            <button onclick="cambiarFiltroAgenda('TODAS')" id="tab-todas" class="px-4 py-2.5 bg-white text-slate-600 hover:bg-slate-50 transition">Todas</button>
+          </div>
+          <button onclick="abrirModalPublicar()" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition">
+            + Publicar nuevo horario
+          </button>
+        </div>
       </div>
-      <button onclick="abrirModalPublicar()" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition w-full sm:w-auto">
-        + Publicar nuevo horario
-      </button>
     </div>
 
-    <!-- Tabla responsiva sin recortes -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm w-full overflow-x-auto">
-      <table class="w-full min-w-[700px] text-left text-sm text-slate-600">
-        <thead class="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
-          <tr>
-            <th class="px-5 py-4">Fecha</th>
-            <th class="px-5 py-4">Horario</th>
-            <th class="px-5 py-4">Materia</th>
-            <th class="px-5 py-4">Modalidad</th>
-            <th class="px-5 py-4">Estado</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr class="hover:bg-slate-50 transition">
-            <td class="px-5 py-4">15/10/2026</td>
-            <td class="px-5 py-4">10:00 - 11:00</td>
-            <td class="px-5 py-4 font-bold text-slate-900">Estructura de Datos</td>
-            <td class="px-5 py-4">Virtual</td>
-            <td class="px-5 py-4">
-              <span class="bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">Congelado · pendiente</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Tabla responsiva -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm w-full overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[800px] text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+            <tr>
+              <th class="px-5 py-4">Fecha</th>
+              <th class="px-5 py-4">Horario</th>
+              <th class="px-5 py-4">Materia</th>
+              <th class="px-5 py-4">Modalidad</th>
+              <th class="px-5 py-4">Estado</th>
+              <th class="px-5 py-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-agenda-body" class="divide-y divide-slate-100">
+            <!-- Renderizado dinámico desde JS -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Estado Vacío -->
+      <div id="agenda-vacia" class="hidden p-12 text-center">
+        <span class="text-4xl block mb-3">📅</span>
+        <h3 class="text-base font-bold text-slate-800">Aún no tienes horarios publicados</h3>
+        <p class="text-sm text-slate-500 mt-1 mb-4">Publica franjas de una hora para que los estudiantes puedan agendar.</p>
+        <button onclick="abrirModalPublicar()" class="px-5 py-2 bg-[#1B396A] text-white text-sm font-semibold rounded-lg shadow-sm">
+          Publicar disponibilidad
+        </button>
+      </div>
     </div>
-
   </main>
+
+  <!-- FORM-001: Modal Publicar Disponibilidad -->
+  <div id="modal-publicar" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-slate-900">Publicar disponibilidad</h2>
+        <button onclick="cerrarModalPublicar()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-slate-500 mb-5">El bloque debe programarse con al menos 24 horas de anticipación.</p>
+      
+      <form onsubmit="publicarFranja(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Materia autorizada</label>
+          <select id="franja-materia" required class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+            <option value="" disabled selected>Cargando materias...</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Fecha</label>
+            <input type="date" id="franja-fecha" required class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Hora de inicio</label>
+            <select id="franja-hora-inicio" required onchange="calcularHoraFin()" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+              <option value="" disabled selected>Elige una hora</option>
+              <option value="07:00:00">07:00</option>
+              <option value="08:00:00">08:00</option>
+              <option value="09:00:00">09:00</option>
+              <option value="10:00:00">10:00</option>
+              <option value="11:00:00">11:00</option>
+              <option value="12:00:00">12:00</option>
+              <option value="13:00:00">13:00</option>
+              <option value="14:00:00">14:00</option>
+              <option value="15:00:00">15:00</option>
+              <option value="16:00:00">16:00</option>
+              <option value="17:00:00">17:00</option>
+              <option value="18:00:00">18:00</option>
+              <option value="19:00:00">19:00</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Hora de término estimada</label>
+          <input type="text" id="franja-hora-fin" readonly placeholder="Se calcula automáticamente (60 min)" class="w-full border border-slate-200 bg-slate-50 text-slate-500 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">Modalidad</label>
+          <div class="flex space-x-4">
+            <label class="flex items-center space-x-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="modalidad" id="mod-presencial" value="Presencial" onchange="toggleUbicacion()" checked class="text-[#1B396A] focus:ring-[#1B396A]">
+              <span>Presencial</span>
+            </label>
+            <label class="flex items-center space-x-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="modalidad" id="mod-virtual" value="Virtual" onchange="toggleUbicacion()" class="text-[#1B396A] focus:ring-[#1B396A]">
+              <span>Virtual</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="div-ubicacion">
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Ubicación en campus</label>
+          <input type="text" id="franja-ubicacion" required placeholder="Ej. Edificio B, aula 204" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+        </div>
+
+        <!-- Mensaje de error de validación -->
+        <p id="error-publicar" class="text-xs text-rose-600 font-semibold hidden"></p>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+          <button type="button" onclick="cerrarModalPublicar()" class="px-4 py-2.5 border border-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-50 transition text-slate-700">Cancelar</button>
+          <button type="submit" id="btn-submit-franja" class="px-5 py-2.5 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg shadow-sm transition">Publicar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Componente Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 transform translate-y-[120%] opacity-0 transition-all duration-300 z-50 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-message" class="text-sm font-medium"></span>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/sesion.js"></script>
-<script>
-  iniciarPaginaProtegida();
-</script>
+  <script src="js/supabase.js"></script>
+  <script src="js/sesion.js"></script>
+  <script>
+    iniciarPaginaProtegida().then(usuario => {
+      if (usuario) {
+        // Obtenemos iniciales para el avatar
+        const inc = usuario.nombre_completo.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+        document.getElementById('avatar-iniciales').textContent = inc;
+        
+        // Inicializamos las funciones de la agenda
+        cargarMateriasAprobadas();
+        listarMiAgenda();
+        configurarFechaMinima();
+      }
+    });
+  </script>
 </body>
 </html>
