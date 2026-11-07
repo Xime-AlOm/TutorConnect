@@ -14,7 +14,7 @@ y el UUID del usuario simulado en request.jwt.claims.
 - Responsable: Edgar Charrez Dothi.
 - Rama: EdgarCharrez/t07.
 - Rama destino: qa.
-- Fecha de ejecución: COMPLETAR CON LA FECHA REAL.
+- Fecha de ejecución: 2026-11-05.
 - Pull request: https://github.com/Xime-AlOm/TutorConnect/pull/17
 - Script: [pruebas_rls.sql](../sql/pruebas_rls.sql).
 
