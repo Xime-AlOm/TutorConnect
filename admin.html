@@ -177,13 +177,95 @@
       </div>
       
     </div>
+      <!-- ===== Sección: Catálogo de materias (T12 · HU-002) ===== -->
+    <section id="seccion-catalogo" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 class="text-lg font-bold text-slate-900">Catálogo de materias</h2>
+        <button id="btn-agregar-materia" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm">
+          Agregar materia
+        </button>
+      </div>
+      <!-- Filtros y buscador -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <input type="search" id="buscar-materia" placeholder="Buscar por nombre…"
+               class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1B396A] outline-none">
+        <select id="filtro-carrera" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1B396A] outline-none">
+          <option value="">Todas las carreras</option>
+        </select>
+        <select id="filtro-estado" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1B396A] outline-none">
+          <option value="todas">Todas</option>
+          <option value="activas">Activas</option>
+          <option value="inactivas">Inactivas</option>
+        </select>
+      </div>
 
-  </main>
+      <!-- Tabla -->
+      <div class="overflow-x-auto w-full border border-slate-200 rounded-lg">
+        <table class="w-full min-w-[600px] text-left text-sm text-slate-700">
+          <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold">
+            <tr>
+              <th class="px-4 py-3">Materia</th>
+              <th class="px-4 py-3">Carrera</th>
+              <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-materias" class="divide-y divide-slate-100 bg-white"></tbody>
+        </table>
+      </div>
+
+      <!-- Estado vacío -->
+      <div id="catalogo-vacio" class="hidden text-center py-10">
+        <p class="text-slate-500 mb-4">Aún no hay materias en el catálogo</p>
+        <button id="btn-agregar-vacio" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-4 py-2 rounded-lg text-sm font-bold transition">Agregar materia</button>
+      </div>
+      <p id="catalogo-sin-resultados" class="hidden text-center text-slate-500 py-6">No hay materias que coincidan con los filtros.</p>
+    </section> 
+</main>
+  <!-- ===== Modal: alta / edición de materia (T12) ===== -->
+  <div id="modal-materia" class="hidden fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+    <form id="form-materia" novalidate class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 id="modal-materia-titulo" class="text-lg font-bold text-slate-900">Agregar materia</h3>
+      <div id="materia-error" role="alert" class="hidden bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm"></div>
+      <div>
+        <label for="materia-nombre" class="block text-sm font-semibold text-slate-600 mb-2">Nombre de la materia</label>
+        <input type="text" id="materia-nombre" maxlength="100"
+               class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1B396A] outline-none">
+      </div>
+      <div>
+        <label for="materia-carrera" class="block text-sm font-semibold text-slate-600 mb-2">Carrera</label>
+        <select id="materia-carrera" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1B396A] outline-none">
+          <option value="">Selecciona una carrera</option>
+        </select>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button type="button" id="btn-cancelar-materia" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold transition">Cancelar</button>
+        <button type="submit" id="btn-guardar-materia" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-4 py-2 rounded-lg text-sm font-bold transition">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== Diálogo: confirmar desactivación (T12) ===== -->
+  <div id="modal-confirmar" class="hidden fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 class="text-lg font-bold text-slate-900">Desactivar materia</h3>
+      <p id="confirmar-texto" class="text-sm text-slate-600"></p>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button type="button" id="btn-no-desactivar" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold transition">No, mantener</button>
+        <button type="button" id="btn-si-desactivar" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Desactivar</button>
+      </div>
+    </div>
+  </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/sesion.js"></script>
+<script src="js/catalogo.js"></script>
 <script>
-  iniciarPaginaProtegida('Coordinador');
+  // Solo el coordinador entra; después se carga el catálogo
+  iniciarPaginaProtegida('Coordinador').then((usuario) => {
+    if (usuario) iniciarCatalogo();
+  });
 </script>
 </body>
 </html>
