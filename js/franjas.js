@@ -44,11 +44,72 @@ async function cargarMateriasAprobadas() {
   });
 }
 
-// Control del DOM del Modal FORM-001
+/* =========================================================
+   AÑADIR O REEMPLAZAR ESTAS FUNCIONES EN js/franjas.js
+   ========================================================= */
+
+// Event Listeners: Vincular la validación de horas al cambiar la fecha en el modal
+document.addEventListener('DOMContentLoaded', () => {
+  const inputFecha = document.getElementById('franja-fecha');
+  if (inputFecha) {
+    inputFecha.addEventListener('change', actualizarHorasDisponibles);
+  }
+});
+
+// Función para consultar horas ocupadas y ocultarlas del select
+async function actualizarHorasDisponibles() {
+  const selectHora = document.getElementById('franja-hora-inicio');
+  const fechaSeleccionada = document.getElementById('franja-fecha').value;
+  const opcionesHora = selectHora.querySelectorAll('option:not([disabled][selected])');
+
+  // 1. Restaurar todas las opciones a visibles antes de filtrar
+  opcionesHora.forEach(op => {
+    op.style.display = 'block';
+    op.disabled = false;
+  });
+  
+  // Reiniciar la selección al valor por defecto
+  selectHora.value = "";
+  document.getElementById('franja-hora-fin').value = ""; // Limpiar hora fin calculada
+
+  if (!fechaSeleccionada) return;
+
+  // 2. Consultar a la BD las franjas del asesor en la fecha seleccionada
+  // Se usa v_mi_agenda ya que filtra por auth.uid() internamente según tu RLS/Vistas
+  const { data, error } = await db
+    .from('v_mi_agenda')
+    .select('hora_inicio')
+    .eq('fecha', fechaSeleccionada);
+
+  if (error) {
+    console.error('Error al verificar disponibilidad de horas:', error.message);
+    return;
+  }
+
+  // 3. Extraer las horas ocupadas en formato 'HH:MM:SS'
+  const horasOcupadas = data.map(franja => franja.hora_inicio);
+
+  // 4. Ocultar y deshabilitar las opciones que coincidan con las horas ocupadas
+  opcionesHora.forEach(op => {
+    // La opción value es '07:00:00', hora_inicio devuelve '07:00:00'
+    if (horasOcupadas.includes(op.value)) {
+      op.style.display = 'none';
+      op.disabled = true;
+    }
+  });
+}
+
+// Actualización a la función abrirModalPublicar
 function abrirModalPublicar() {
   document.getElementById('error-publicar').classList.add('hidden');
   document.getElementById('modal-publicar').classList.remove('hidden');
   document.getElementById('modal-publicar').classList.add('flex');
+  
+  // Inicializamos el select de horas para que estén todas visibles al abrir
+  const selectHora = document.getElementById('franja-hora-inicio');
+  const opcionesHora = selectHora.querySelectorAll('option');
+  opcionesHora.forEach(op => { op.style.display = 'block'; op.disabled = false; });
+  selectHora.value = "";
 }
 
 function cerrarModalPublicar() {
