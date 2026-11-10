@@ -177,7 +177,8 @@
   <script src="js/supabase.js"></script>
   <script src="js/sesion.js"></script>
   <script>
-    iniciarPaginaProtegida().then(usuario => {
+    iniciarPaginaProtegida().then(async (usuario) => {
+      if (!(await esAsesorAprobado())) { location.href = 'panel.html'; return; }
       if (usuario) {
         // Obtenemos iniciales para el avatar
         const inc = usuario.nombre_completo.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
