@@ -76,10 +76,11 @@ function exigirRol(...roles) {
 async function esAsesorAprobado() {
   if (!usuarioActual) return false;
 
+  // v_postulaciones ya limita los resultados al usuario autenticado
+  // (o devuelve todas las filas si el usuario es Coordinador).
   const { count, error } = await db
     .from('v_postulaciones')
-    .select('*', { count: 'exact', head: true })
-    .eq('id_usuario', usuarioActual.id_usuario) // ajustar si la vista usa otro nombre de columna
+    .select('id_asesor_materia', { count: 'exact', head: true })
     .eq('estado_autorizacion', 'Aprobada');
 
   if (error) {

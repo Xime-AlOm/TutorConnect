@@ -6,8 +6,8 @@
   <title>TutorConnect | Prueba Supabase JS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase.js"></script> 
-</head>
+  <script src="js/supabase.js"></script>
+  <script src="js/sesion.js"></script>
 <body class="min-h-screen bg-slate-100 text-slate-800">
   <header class="bg-emerald-900 text-white">
     <div class="mx-auto max-w-6xl px-5 py-6">
@@ -39,7 +39,7 @@
       </form>
       <div id="authStatus" class="mt-3 rounded-lg bg-slate-50 p-3 text-sm" aria-live="polite">No has iniciado sesión.</div>
     </section>
-
+   
     <section class="rounded-xl bg-white p-5 shadow-sm">
       <h2 class="text-lg font-bold">2. Consultar franjas disponibles</h2>
       <p class="mt-1 text-sm text-slate-600">Lee <code>v_franjas_disponibles</code> y muestra los campos solicitados.</p>
@@ -98,6 +98,7 @@
   <script>
     // URL del proyecto TutorConnect. Usa la clave publicable/anon, nunca service_role.
 
+    
     const $ = (id) => document.getElementById(id);
 
     function setMessage(id, message, isError = false) {

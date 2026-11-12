@@ -122,58 +122,53 @@
         </div>
       </div>
 
-      <!-- Tabla de Postulaciones -->
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-        <h2 class="text-lg font-bold text-slate-900 mb-4">Postulaciones de tutores pares</h2>
-        
-        <!-- Contenedor responsive para tabla -->
-        <div class="overflow-x-auto w-full border border-slate-200 rounded-lg flex-1">
-          <table class="w-full min-w-[500px] text-left text-sm text-slate-700">
+      <!-- Postulaciones pendientes y dictámenes -->
+      <section class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div class="mb-4">
+          <h2 class="text-lg font-bold text-slate-900">Postulaciones pendientes</h2>
+          <p class="text-sm text-slate-500 mt-1">Solicitudes de estudiantes y profesores para asesorar una materia.</p>
+        </div>
+        <div class="overflow-x-auto w-full border border-slate-200 rounded-lg">
+          <table class="w-full min-w-[850px] text-left text-sm text-slate-700">
             <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold">
-              <tr>
-                <th class="px-4 py-3">Estudiante</th>
-                <th class="px-4 py-3">Materia</th>
-                <th class="px-4 py-3">Acciones</th>
-              </tr>
+              <tr><th class="px-4 py-3">Solicitante</th><th class="px-4 py-3">Rol</th><th class="px-4 py-3">Materia</th><th class="px-4 py-3">Fecha de solicitud</th><th class="px-4 py-3">Fecha de dictamen</th><th class="px-4 py-3">Acciones</th></tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 bg-white">
-              
-              <tr class="hover:bg-slate-50 transition">
-                <td class="px-4 py-3.5 font-medium text-slate-900">Carlos Mendoza</td>
-                <td class="px-4 py-3.5">Estructura de Datos</td>
-                <td class="px-4 py-3.5">
-                  <div class="flex space-x-2">
-                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
-                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
-                  </div>
-                </td>
-              </tr>
-              
-              <tr class="hover:bg-slate-50 transition">
-                <td class="px-4 py-3.5 font-medium text-slate-900">Paola Ortiz</td>
-                <td class="px-4 py-3.5">Cálculo Integral</td>
-                <td class="px-4 py-3.5">
-                  <div class="flex space-x-2">
-                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
-                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
-                  </div>
-                </td>
-              </tr>
-              
+            <tbody id="postulaciones-pendientes" class="divide-y divide-slate-100 bg-white">
+              <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Cargando postulaciones…</td></tr>
             </tbody>
           </table>
         </div>
-        
-      </div>
-      
+      </section>
+
+      <section class="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 class="text-lg font-bold text-slate-900 mb-4">Historial · Aprobadas</h2>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full min-w-[650px] text-left text-sm text-slate-700">
+              <thead class="bg-slate-100 text-slate-600 font-bold"><tr><th class="px-4 py-3">Solicitante</th><th class="px-4 py-3">Rol</th><th class="px-4 py-3">Materia</th><th class="px-4 py-3">Solicitud</th><th class="px-4 py-3">Dictamen</th><th class="px-4 py-3">Estado</th></tr></thead>
+              <tbody id="postulaciones-aprobadas" class="divide-y divide-slate-100"><tr><td colspan="6" class="px-4 py-5 text-center text-slate-500">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 class="text-lg font-bold text-slate-900 mb-4">Historial · Rechazadas</h2>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full min-w-[650px] text-left text-sm text-slate-700">
+              <thead class="bg-slate-100 text-slate-600 font-bold"><tr><th class="px-4 py-3">Solicitante</th><th class="px-4 py-3">Rol</th><th class="px-4 py-3">Materia</th><th class="px-4 py-3">Solicitud</th><th class="px-4 py-3">Dictamen</th><th class="px-4 py-3">Estado</th></tr></thead>
+              <tbody id="postulaciones-rechazadas" class="divide-y divide-slate-100"><tr><td colspan="6" class="px-4 py-5 text-center text-slate-500">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
 
   </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/sesion.js"></script>
+<script src="js/catalogo.js"></script>
 <script>
-  iniciarPaginaProtegida('Coordinador');
+  iniciarAdminPostulaciones();
 </script>
 </body>
 </html>
