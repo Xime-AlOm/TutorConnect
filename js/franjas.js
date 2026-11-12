@@ -291,3 +291,143 @@ function mostrarToast(msg) {
     toast.classList.add('translate-y-[120%]', 'opacity-0');
   }, 3500);
 }
+
+/* =========================================================
+   TutorConnect — MÓDULO DE BÚSQUEDA (SCR-003 / T15a)
+   Integra la consulta a v_franjas_disponibles
+   ========================================================= */
+
+// Carga las materias activas en el select de filtros
+async function cargarFiltroMaterias() {
+  const selectFiltro = document.getElementById('filtro-materia');
+  if (!selectFiltro) return;
+
+  const { data, error } = await db
+    .from('materia')
+    .select('id_materia, nombre_materia')
+    .eq('estado_activo', true)
+    .order('nombre_materia');
+
+  if (error) {
+    console.error('Error cargando materias filtro:', error.message);
+    return;
+  }
+
+  data.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id_materia;
+    opt.textContent = m.nombre_materia;
+    selectFiltro.appendChild(opt);
+  });
+}
+
+function limpiarFiltrosBusqueda() {
+  document.getElementById('form-filtros').reset();
+  window.recargarBusqueda();
+}
+
+// Expuesto globalmente para recargar tras reservar en T15b
+window.recargarBusqueda = async function() {
+  const gridSkeletons = document.getElementById('grid-skeletons');
+  const gridResultados = document.getElementById('grid-resultados');
+  const estadoVacio = document.getElementById('estado-vacio');
+  const textoContador = document.getElementById('texto-contador');
+
+  if(!gridResultados) return; // Protege ejecución si no estamos en buscar.html
+
+  // 1. Mostrar Skeletons
+  gridResultados.classList.add('hidden');
+  estadoVacio.classList.add('hidden');
+  gridSkeletons.classList.remove('hidden');
+  textoContador.textContent = 'Buscando horarios...';
+
+  // 2. Obtener Filtros
+  const idMateria = document.getElementById('filtro-materia').value;
+  const fecha = document.getElementById('filtro-fecha').value;
+  const modalidad = document.getElementById('filtro-modalidad').value;
+
+  // 3. Construir Query
+  let query = db.from('v_franjas_disponibles').select('*').order('fecha').order('hora_inicio');
+  
+  if (idMateria) query = query.eq('id_materia', idMateria);
+  if (fecha) query = query.eq('fecha', fecha);
+  if (modalidad && modalidad !== 'Todas') query = query.eq('modalidad', modalidad);
+
+  const { data, error } = await query;
+
+  // 4. Ocultar Skeletons
+  gridSkeletons.classList.add('hidden');
+
+  if (error) {
+    textoContador.textContent = 'Error de conexión';
+    console.error('Error buscando franjas:', error.message);
+    return;
+  }
+
+  // 5. Evaluar Resultados
+  if (data.length === 0) {
+    estadoVacio.classList.remove('hidden');
+    textoContador.textContent = '0 horarios disponibles';
+    gridResultados.innerHTML = '';
+    return;
+  }
+
+  // 6. Renderizar Tarjetas
+  gridResultados.classList.remove('hidden');
+  textoContador.textContent = `${data.length} horario${data.length === 1 ? '' : 's'} disponible${data.length === 1 ? '' : 's'}`;
+  gridResultados.innerHTML = '';
+
+  data.forEach(f => {
+    // Cálculo hora fin
+    const hrInicio = f.hora_inicio.substring(0, 5);
+    const hrFin = String(Number(hrInicio.split(':')[0]) + 1).padStart(2, '0') + ':' + hrInicio.split(':')[1];
+    
+    // Formato de Fecha "jueves 12 de noviembre"
+    const [y, m, d] = f.fecha.split('-');
+    const fechaObj = new Date(y, m - 1, d);
+    const fechaStr = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(fechaObj);
+
+    // Diseño de etiquetas y calificaciones
+    const badgeRol = f.es_tutor_par ? 'Tutor par' : 'Profesor';
+    const numEval = f.num_evaluaciones;
+    const renderCalif = numEval > 0 
+      ? `★★★★★ <span class="text-slate-500 font-normal">${f.promedio} (${numEval})</span>`
+      : `<span class="text-slate-400 font-normal italic">Sin calificaciones</span>`;
+
+    const isVirtual = f.modalidad === 'Virtual';
+    const badgeModClass = isVirtual ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+    const iconModText = isVirtual ? '💻 Virtual' : '📍 Presencial';
+    const ubiLinea = !isVirtual && f.ubicacion_presencial 
+      ? `<p class="flex items-start mt-1.5">📍 <span class="ml-1 leading-tight line-clamp-2" title="${f.ubicacion_presencial}">${f.ubicacion_presencial}</span></p>`
+      : ``;
+
+    gridResultados.innerHTML += `
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide">${badgeRol}</span>
+            <span class="text-[10px] font-bold px-2.5 py-1 rounded border ${badgeModClass}">${iconModText}</span>
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="text-sm font-bold text-slate-900 leading-tight line-clamp-1" title="${f.asesor}">${f.asesor}</h3>
+            <p class="text-[11px] text-amber-500 font-bold mt-1">${renderCalif}</p>
+          </div>
+          
+          <div class="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-100 mb-4 line-clamp-2">
+            ${f.nombre_materia}
+          </div>
+          
+          <div class="text-xs text-slate-600 mb-5">
+            <p class="flex items-center capitalize">🕒 <span class="ml-1">${hrInicio} - ${hrFin} • ${fechaStr}</span></p>
+            ${ubiLinea}
+          </div>
+        </div>
+        
+        <button data-id-franja="${f.id_disponibilidad}" onclick="abrirModalSolicitar(this)" class="w-full bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold py-2.5 rounded-lg transition shadow-sm mt-auto">
+          Solicitar asesoría
+        </button>
+      </div>
+    `;
+  });
+};
