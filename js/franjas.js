@@ -1,10 +1,27 @@
 /* =========================================================
    TutorConnect — js/franjas.js
-   Gestión completa de Mi Agenda y publicación de franjas.
-   Usa db y funciones de supabase.js / sesion.js
+   Gestión de Mi Agenda (SCR-004) y Búsqueda de Asesorías (SCR-003)
+   ========================================================= */
+
+// Sanitiza texto libre antes de insertarlo en innerHTML o atributos title="..."
+function seguro(t) {
+  const d = document.createElement('div');
+  d.textContent = t ?? '';
+  return d.innerHTML.replace(/"/g, '"');
+}
+
+/* =========================================================
+   1. MÓDULO DE MI AGENDA Y PUBLICACIÓN (SCR-004 / T14)
    ========================================================= */
 
 let filtroActual = 'PROXIMAS';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inputFecha = document.getElementById('franja-fecha');
+  if (inputFecha) {
+    inputFecha.addEventListener('change', actualizarHorasDisponibles);
+  }
+});
 
 // Configura RN-10: la fecha mínima para publicar es mañana
 function configurarFechaMinima() {
@@ -16,23 +33,26 @@ function configurarFechaMinima() {
   }
 }
 
-// Carga el <select> solo con materias que tienen estado 'Aprobada'
+// Carga el <select> con todas las materias activas
 async function cargarMateriasAprobadas() {
+  const select = document.getElementById('franja-materia');
+  if (!select) return;
+
   const { data, error } = await db
-    .from('v_postulaciones')
+    .from('materia')
     .select('id_materia, nombre_materia')
-    .eq('estado_autorizacion', 'Aprobada');
+    .eq('estado_activo', true)
+    .order('nombre_materia');
 
   if (error) {
     console.error('Error al cargar materias:', error.message);
     return;
   }
 
-  const select = document.getElementById('franja-materia');
-  select.innerHTML = '<option value="" disabled selected>Selecciona una materia autorizada</option>';
-  
+  select.innerHTML = '<option value="" disabled selected>Selecciona una materia</option>';
+
   if (data.length === 0) {
-    select.innerHTML = '<option value="" disabled>No tienes materias aprobadas aún</option>';
+    select.innerHTML = '<option value="" disabled>No hay materias disponibles</option>';
     return;
   }
 
@@ -44,78 +64,25 @@ async function cargarMateriasAprobadas() {
   });
 }
 
-/* =========================================================
-   AÑADIR O REEMPLAZAR ESTAS FUNCIONES EN js/franjas.js
-   ========================================================= */
-
-// Event Listeners: Vincular la validación de horas al cambiar la fecha en el modal
-document.addEventListener('DOMContentLoaded', () => {
-  const inputFecha = document.getElementById('franja-fecha');
-  if (inputFecha) {
-    inputFecha.addEventListener('change', actualizarHorasDisponibles);
-  }
-});
-
-// Función para consultar horas ocupadas y ocultarlas del select
-async function actualizarHorasDisponibles() {
-  const selectHora = document.getElementById('franja-hora-inicio');
-  const fechaSeleccionada = document.getElementById('franja-fecha').value;
-  const opcionesHora = selectHora.querySelectorAll('option:not([disabled][selected])');
-
-  // 1. Restaurar todas las opciones a visibles antes de filtrar
-  opcionesHora.forEach(op => {
-    op.style.display = 'block';
-    op.disabled = false;
-  });
-  
-  // Reiniciar la selección al valor por defecto
-  selectHora.value = "";
-  document.getElementById('franja-hora-fin').value = ""; // Limpiar hora fin calculada
-
-  if (!fechaSeleccionada) return;
-
-  // 2. Consultar a la BD las franjas del asesor en la fecha seleccionada
-  // Se usa v_mi_agenda ya que filtra por auth.uid() internamente según tu RLS/Vistas
-  const { data, error } = await db
-    .from('v_mi_agenda')
-    .select('hora_inicio')
-    .eq('fecha', fechaSeleccionada);
-
-  if (error) {
-    console.error('Error al verificar disponibilidad de horas:', error.message);
-    return;
-  }
-
-  // 3. Extraer las horas ocupadas en formato 'HH:MM:SS'
-  const horasOcupadas = data.map(franja => franja.hora_inicio);
-
-  // 4. Ocultar y deshabilitar las opciones que coincidan con las horas ocupadas
-  opcionesHora.forEach(op => {
-    // La opción value es '07:00:00', hora_inicio devuelve '07:00:00'
-    if (horasOcupadas.includes(op.value)) {
-      op.style.display = 'none';
-      op.disabled = true;
-    }
-  });
-}
-
-// Actualización a la función abrirModalPublicar
+// Control del DOM del Modal FORM-001
 function abrirModalPublicar() {
   document.getElementById('error-publicar').classList.add('hidden');
   document.getElementById('modal-publicar').classList.remove('hidden');
   document.getElementById('modal-publicar').classList.add('flex');
-  
-  // Inicializamos el select de horas para que estén todas visibles al abrir
+
   const selectHora = document.getElementById('franja-hora-inicio');
   const opcionesHora = selectHora.querySelectorAll('option');
-  opcionesHora.forEach(op => { op.style.display = 'block'; op.disabled = false; });
-  selectHora.value = "";
+  opcionesHora.forEach(op => {
+    op.style.display = 'block';
+    op.disabled = false;
+  });
+  selectHora.value = '';
 }
 
 function cerrarModalPublicar() {
   document.getElementById('modal-publicar').classList.add('hidden');
   document.getElementById('modal-publicar').classList.remove('flex');
-  document.querySelector('form').reset();
+  document.querySelector('#modal-publicar form').reset();
   toggleUbicacion();
 }
 
@@ -131,7 +98,7 @@ function toggleUbicacion() {
   const esVirtual = document.getElementById('mod-virtual').checked;
   const divUbicacion = document.getElementById('div-ubicacion');
   const inputUbicacion = document.getElementById('franja-ubicacion');
-  
+
   if (esVirtual) {
     divUbicacion.classList.add('hidden');
     inputUbicacion.required = false;
@@ -142,12 +109,48 @@ function toggleUbicacion() {
   }
 }
 
+// Oculta del select las horas ya registradas por el asesor en la fecha elegida
+async function actualizarHorasDisponibles() {
+  const selectHora = document.getElementById('franja-hora-inicio');
+  const fechaSeleccionada = document.getElementById('franja-fecha').value;
+  const opcionesHora = selectHora.querySelectorAll('option:not([disabled][selected])');
+
+  opcionesHora.forEach(op => {
+    op.style.display = 'block';
+    op.disabled = false;
+  });
+
+  selectHora.value = '';
+  document.getElementById('franja-hora-fin').value = '';
+
+  if (!fechaSeleccionada) return;
+
+  const { data, error } = await db
+    .from('v_mi_agenda')
+    .select('hora_inicio')
+    .eq('fecha', fechaSeleccionada);
+
+  if (error) {
+    console.error('Error al verificar disponibilidad de horas:', error.message);
+    return;
+  }
+
+  const horasOcupadas = data.map(franja => franja.hora_inicio);
+
+  opcionesHora.forEach(op => {
+    if (horasOcupadas.includes(op.value)) {
+      op.style.display = 'none';
+      op.disabled = true;
+    }
+  });
+}
+
 // Llamada a la RPC publicar_franja
 async function publicarFranja(event) {
   event.preventDefault();
   const btnSubmit = document.getElementById('btn-submit-franja');
   const msjError = document.getElementById('error-publicar');
-  
+
   btnSubmit.disabled = true;
   btnSubmit.innerText = 'Publicando...';
   msjError.classList.add('hidden');
@@ -158,7 +161,7 @@ async function publicarFranja(event) {
   const p_modalidad = document.querySelector('input[name="modalidad"]:checked').value;
   const p_ubicacion = document.getElementById('franja-ubicacion').value;
 
-  const { data, error } = await db.rpc('publicar_franja', {
+  const { error } = await db.rpc('publicar_franja', {
     p_id_materia,
     p_fecha,
     p_hora,
@@ -170,7 +173,7 @@ async function publicarFranja(event) {
   btnSubmit.innerText = 'Publicar';
 
   if (error) {
-    msjError.textContent = error.message; // Imprime los mensajes SQL (RN-10, cruzados, permisos)
+    msjError.textContent = error.message;
     msjError.classList.remove('hidden');
     return;
   }
@@ -180,27 +183,28 @@ async function publicarFranja(event) {
   listarMiAgenda();
 }
 
-// Filtros y Renderizado de la Vista v_mi_agenda
 function cambiarFiltroAgenda(filtro) {
   filtroActual = filtro;
-  document.getElementById('tab-proximas').className = filtro === 'PROXIMAS' 
-    ? "px-4 py-2.5 bg-[#1B396A] text-white transition" 
-    : "px-4 py-2.5 bg-white text-slate-600 hover:bg-slate-50 transition";
-  document.getElementById('tab-todas').className = filtro === 'TODAS' 
-    ? "px-4 py-2.5 bg-[#1B396A] text-white transition" 
-    : "px-4 py-2.5 bg-white text-slate-600 hover:bg-slate-50 transition";
+  document.getElementById('tab-proximas').className = filtro === 'PROXIMAS'
+    ? 'px-4 py-2.5 bg-[#1B396A] text-white transition'
+    : 'px-4 py-2.5 bg-white text-slate-600 hover:bg-slate-50 transition';
+  document.getElementById('tab-todas').className = filtro === 'TODAS'
+    ? 'px-4 py-2.5 bg-[#1B396A] text-white transition'
+    : 'px-4 py-2.5 bg-white text-slate-600 hover:bg-slate-50 transition';
   listarMiAgenda();
 }
 
 async function listarMiAgenda() {
   const tbody = document.getElementById('tabla-agenda-body');
+  if (!tbody) return;
+
   const msjVacio = document.getElementById('agenda-vacia');
   const tablaContenedor = tbody.parentElement.parentElement;
-  
+
   tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-4 text-center text-sm text-slate-500">Cargando agenda...</td></tr>';
 
   let query = db.from('v_mi_agenda').select('*').order('fecha').order('hora_inicio');
-  
+
   if (filtroActual === 'PROXIMAS') {
     const hoy = new Date().toISOString().split('T')[0];
     query = query.gte('fecha', hoy);
@@ -209,7 +213,7 @@ async function listarMiAgenda() {
   const { data, error } = await query;
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-4 text-center text-rose-600">Error: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-4 text-center text-rose-600">Error: ${seguro(error.message)}</td></tr>`;
     return;
   }
 
@@ -225,21 +229,18 @@ async function listarMiAgenda() {
 
   data.forEach(franja => {
     const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition";
+    tr.className = 'hover:bg-slate-50 transition';
 
-    // Formatear hora de 07:00:00 a 07:00
     const hrInicio = franja.hora_inicio.substring(0, 5);
     const hrFin = String(Number(hrInicio.split(':')[0]) + 1).padStart(2, '0') + ':' + hrInicio.split(':')[1];
-    
-    // Formatear fecha a DD/MM/YYYY
+
     const [y, m, d] = franja.fecha.split('-');
     const fechaFormat = `${d}/${m}/${y}`;
 
-    // Estilos de estado
     let badgeClass = '';
-    let iconModalidad = franja.modalidad === 'Virtual' ? '💻' : '📍';
-    let ubTexto = franja.modalidad === 'Virtual' ? 'Virtual' : franja.ubicacion_presencial;
-    
+    const iconModalidad = franja.modalidad === 'Virtual' ? '💻' : '📍';
+    const ubTexto = franja.modalidad === 'Virtual' ? 'Virtual' : franja.ubicacion_presencial;
+
     switch (franja.estado_franja) {
       case 'Libre': badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200'; break;
       case 'Congelado': badgeClass = 'bg-amber-100 text-amber-800 border-amber-200'; break;
@@ -247,17 +248,17 @@ async function listarMiAgenda() {
       case 'Vencido': badgeClass = 'bg-slate-100 text-slate-600 border-slate-200'; break;
     }
 
-    const btnRetirar = franja.estado_franja === 'Libre' 
+    const btnRetirar = franja.estado_franja === 'Libre'
       ? `<button onclick="retirarFranja(${franja.id_disponibilidad})" class="text-rose-600 hover:text-rose-800 font-semibold text-xs transition">Retirar</button>`
       : `<span class="text-slate-400 text-xs cursor-not-allowed">Retirar</span>`;
 
     tr.innerHTML = `
       <td class="px-5 py-4 font-medium text-slate-900">${fechaFormat}</td>
       <td class="px-5 py-4">${hrInicio} - ${hrFin}</td>
-      <td class="px-5 py-4 font-bold text-slate-900">${franja.nombre_materia}</td>
-      <td class="px-5 py-4">${iconModalidad} <span class="ml-1 truncate max-w-[150px] inline-block align-bottom" title="${ubTexto}">${ubTexto}</span></td>
+      <td class="px-5 py-4 font-bold text-slate-900">${seguro(franja.nombre_materia)}</td>
+      <td class="px-5 py-4">${iconModalidad} <span class="ml-1 truncate max-w-[150px] inline-block align-bottom" title="${seguro(ubTexto)}">${seguro(ubTexto)}</span></td>
       <td class="px-5 py-4">
-        <span class="${badgeClass} border px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">${franja.estado_franja}</span>
+        <span class="${badgeClass} border px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">${seguro(franja.estado_franja)}</span>
       </td>
       <td class="px-5 py-4 text-right">${btnRetirar}</td>
     `;
@@ -271,7 +272,7 @@ async function retirarFranja(id) {
   const { error } = await db.rpc('eliminar_franja', { p_id: id });
 
   if (error) {
-    alert(error.message); // Imprime "No se puede eliminar: el horario ya tiene solicitudes registradas"
+    alert(error.message);
     return;
   }
 
@@ -281,8 +282,9 @@ async function retirarFranja(id) {
 
 function mostrarToast(msg) {
   const toast = document.getElementById('toast');
+  if (!toast) return;
   document.getElementById('toast-message').innerText = msg;
-  
+
   toast.classList.remove('translate-y-[120%]', 'opacity-0');
   toast.classList.add('translate-y-0', 'opacity-100');
 
@@ -292,9 +294,9 @@ function mostrarToast(msg) {
   }, 3500);
 }
 
+
 /* =========================================================
-   TutorConnect — MÓDULO DE BÚSQUEDA (SCR-003 / T15a)
-   Integra la consulta a v_franjas_disponibles
+   2. MÓDULO DE BÚSQUEDA DE ASESORÍAS (SCR-003 / T15a)
    ========================================================= */
 
 // Carga las materias activas en el select de filtros
@@ -326,29 +328,34 @@ function limpiarFiltrosBusqueda() {
   window.recargarBusqueda();
 }
 
-// Expuesto globalmente para recargar tras reservar en T15b
-window.recargarBusqueda = async function() {
+// Consulta v_franjas_disponibles y renderiza skeletons, tarjetas o estado vacío
+async function buscarFranjas(filtros = null) {
   const gridSkeletons = document.getElementById('grid-skeletons');
   const gridResultados = document.getElementById('grid-resultados');
   const estadoVacio = document.getElementById('estado-vacio');
   const textoContador = document.getElementById('texto-contador');
 
-  if(!gridResultados) return; // Protege ejecución si no estamos en buscar.html
+  if (!gridResultados) return;
 
   // 1. Mostrar Skeletons
   gridResultados.classList.add('hidden');
   estadoVacio.classList.add('hidden');
+  estadoVacio.classList.remove('flex');
   gridSkeletons.classList.remove('hidden');
   textoContador.textContent = 'Buscando horarios...';
 
-  // 2. Obtener Filtros
-  const idMateria = document.getElementById('filtro-materia').value;
-  const fecha = document.getElementById('filtro-fecha').value;
-  const modalidad = document.getElementById('filtro-modalidad').value;
+  // 2. Obtener Filtros (desde argumento o desde los inputs del DOM)
+  const idMateria = filtros?.id_materia ?? document.getElementById('filtro-materia').value;
+  const fecha = filtros?.fecha ?? document.getElementById('filtro-fecha').value;
+  const modalidad = filtros?.modalidad ?? document.getElementById('filtro-modalidad').value;
 
   // 3. Construir Query
-  let query = db.from('v_franjas_disponibles').select('*').order('fecha').order('hora_inicio');
-  
+  let query = db
+    .from('v_franjas_disponibles')
+    .select('*')
+    .order('fecha')
+    .order('hora_inicio');
+
   if (idMateria) query = query.eq('id_materia', idMateria);
   if (fecha) query = query.eq('fecha', fecha);
   if (modalidad && modalidad !== 'Todas') query = query.eq('modalidad', modalidad);
@@ -364,9 +371,10 @@ window.recargarBusqueda = async function() {
     return;
   }
 
-  // 5. Evaluar Resultados
+  // 5. Evaluar Resultados (Estado vacío conservando flex flex-col items-center)
   if (data.length === 0) {
     estadoVacio.classList.remove('hidden');
+    estadoVacio.classList.add('flex', 'flex-col', 'items-center');
     textoContador.textContent = '0 horarios disponibles';
     gridResultados.innerHTML = '';
     return;
@@ -378,28 +386,42 @@ window.recargarBusqueda = async function() {
   gridResultados.innerHTML = '';
 
   data.forEach(f => {
-    // Cálculo hora fin
+    // Cálculo hora inicio - fin
     const hrInicio = f.hora_inicio.substring(0, 5);
     const hrFin = String(Number(hrInicio.split(':')[0]) + 1).padStart(2, '0') + ':' + hrInicio.split(':')[1];
-    
-    // Formato de Fecha "jueves 12 de noviembre"
+
+    // Formato de fecha con solo la primera letra en mayúscula ("Jueves 12 de noviembre")
     const [y, m, d] = f.fecha.split('-');
     const fechaObj = new Date(y, m - 1, d);
-    const fechaStr = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(fechaObj);
+    const fechaRaw = new Intl.DateTimeFormat('es-MX', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    }).format(fechaObj);
+    const fechaStr = fechaRaw.charAt(0).toUpperCase() + fechaRaw.slice(1);
 
-    // Diseño de etiquetas y calificaciones
+    // Rol y estrellas calculadas con el promedio
     const badgeRol = f.es_tutor_par ? 'Tutor par' : 'Profesor';
     const numEval = f.num_evaluaciones;
-    const renderCalif = numEval > 0 
-      ? `★★★★★ <span class="text-slate-500 font-normal">${f.promedio} (${numEval})</span>`
+    const n = Math.round(f.promedio);
+    const estrellas = '★'.repeat(n) + '☆'.repeat(5 - n);
+    const renderCalif = numEval > 0
+      ? `${estrellas} <span class="text-slate-500 font-normal">${f.promedio} (${numEval})</span>`
       : `<span class="text-slate-400 font-normal italic">Sin calificaciones</span>`;
 
+    // Modalidad y ubicación sanitizada
     const isVirtual = f.modalidad === 'Virtual';
-    const badgeModClass = isVirtual ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+    const badgeModClass = isVirtual
+      ? 'bg-blue-50 text-blue-700 border-blue-100'
+      : 'bg-emerald-50 text-emerald-700 border-emerald-100';
     const iconModText = isVirtual ? '💻 Virtual' : '📍 Presencial';
-    const ubiLinea = !isVirtual && f.ubicacion_presencial 
-      ? `<p class="flex items-start mt-1.5">📍 <span class="ml-1 leading-tight line-clamp-2" title="${f.ubicacion_presencial}">${f.ubicacion_presencial}</span></p>`
-      : ``;
+    const ubiSegura = seguro(f.ubicacion_presencial);
+    const ubiLinea = !isVirtual && f.ubicacion_presencial
+      ? `<p class="flex items-start mt-1.5">📍 <span class="ml-1 leading-tight line-clamp-2" title="${ubiSegura}">${ubiSegura}</span></p>`
+      : '';
+
+    const asesorSeguro = seguro(f.asesor);
+    const materiaSegura = seguro(f.nombre_materia);
 
     gridResultados.innerHTML += `
       <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
@@ -410,24 +432,29 @@ window.recargarBusqueda = async function() {
           </div>
           
           <div class="mb-4">
-            <h3 class="text-sm font-bold text-slate-900 leading-tight line-clamp-1" title="${f.asesor}">${f.asesor}</h3>
+            <h3 class="text-sm font-bold text-slate-900 leading-tight line-clamp-1" title="${asesorSeguro}">${asesorSeguro}</h3>
             <p class="text-[11px] text-amber-500 font-bold mt-1">${renderCalif}</p>
           </div>
           
-          <div class="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-100 mb-4 line-clamp-2">
-            ${f.nombre_materia}
+          <div class="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-100 mb-4 line-clamp-2" title="${materiaSegura}">
+            ${materiaSegura}
           </div>
           
           <div class="text-xs text-slate-600 mb-5">
-            <p class="flex items-center capitalize">🕒 <span class="ml-1">${hrInicio} - ${hrFin} • ${fechaStr}</span></p>
+            <p class="flex items-center">🕒 <span class="ml-1">${hrInicio} - ${hrFin} • ${fechaStr}</span></p>
             ${ubiLinea}
           </div>
         </div>
         
-        <button data-id-franja="${f.id_disponibilidad}" onclick="abrirModalSolicitar(this)" class="w-full bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold py-2.5 rounded-lg transition shadow-sm mt-auto">
+        <button data-id-franja="${f.id_disponibilidad}" onclick="if(typeof abrirModalSolicitar === 'function') abrirModalSolicitar(this)" class="w-full bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold py-2.5 rounded-lg transition shadow-sm mt-auto">
           Solicitar asesoría
         </button>
       </div>
     `;
   });
+}
+
+// Expuesto globalmente para recargar tras reservar en T15b
+window.recargarBusqueda = function() {
+  return buscarFranjas();
 };
