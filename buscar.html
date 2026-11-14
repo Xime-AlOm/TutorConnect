@@ -98,9 +98,9 @@
       <span class="text-5xl block mb-4">🔍</span>
       <h3 class="text-lg font-bold text-slate-900 mb-1">No hay asesorías en este momento</h3>
       <p class="text-sm text-slate-500 mb-6 max-w-md">No encontramos asesorías disponibles para esta materia en la fecha seleccionada.</p>
-      <div class="flex gap-3">
-        <button onclick="document.getElementById('filtro-fecha').focus(); document.getElementById('filtro-fecha').showPicker();" class="px-5 py-2.5 bg-[#1B396A] text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-[#13274A] transition">Cambiar fecha</button>
-        <button onclick="document.getElementById('filtro-materia').value=''; window.recargarBusqueda();" class="px-5 py-2.5 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition">Ver todas las materias</button>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button type="button" onclick="const inp = document.getElementById('filtro-fecha'); inp.focus(); if (inp.showPicker) inp.showPicker();" class="px-5 py-2.5 bg-[#1B396A] text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-[#13274A] transition">Cambiar fecha</button>
+        <button type="button" onclick="document.getElementById('filtro-materia').value=''; window.recargarBusqueda();" class="px-5 py-2.5 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition">Ver todas las materias</button>
       </div>
     </div>
 
