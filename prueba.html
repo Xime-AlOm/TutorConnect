@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorConnect | Prueba Supabase JS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/sesion.js"></script>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+  <header class="bg-emerald-900 text-white">
+    <div class="mx-auto max-w-6xl px-5 py-6">
+      <p class="text-sm font-semibold uppercase tracking-widest text-emerald-200">TutorConnect</p>
+      <h1 class="mt-1 text-2xl font-bold">Página de prueba · Supabase JS v2</h1>
+      <p class="mt-1 text-emerald-100">Autenticación, consultas a vistas, catálogo, RPC y manejo de errores.</p>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl space-y-6 px-5 py-8">
+    <section class="rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold">1. Inicio de sesión</h2>
+      <p class="mt-1 text-sm text-slate-600">Inicia sesión con un usuario de prueba de Supabase Auth.</p>
+      <form id="loginForm" class="mt-4 grid gap-3 sm:grid-cols-3">
+        <label class="text-sm font-medium">Correo
+          <input id="email" type="email" required autocomplete="username"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal"
+            placeholder="usuario@ejemplo.com">
+        </label>
+        <label class="text-sm font-medium">Contraseña
+          <input id="password" type="password" required autocomplete="current-password"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal"
+            placeholder="Contraseña">
+        </label>
+        <div class="flex items-end gap-2">
+          <button class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800" type="submit">Iniciar sesión</button>
+          <button id="logoutBtn" class="rounded-lg border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50" type="button">Salir</button>
+        </div>
+      </form>
+      <div id="authStatus" class="mt-3 rounded-lg bg-slate-50 p-3 text-sm" aria-live="polite">No has iniciado sesión.</div>
+    </section>
+   
+    <section class="rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold">2. Consultar franjas disponibles</h2>
+      <p class="mt-1 text-sm text-slate-600">Lee <code>v_franjas_disponibles</code> y muestra los campos solicitados.</p>
+      <button id="franjasBtn" class="mt-4 rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">Consultar franjas</button>
+      <div id="franjasStatus" class="mt-3 text-sm" aria-live="polite"></div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="min-w-full border-collapse text-left text-sm">
+          <thead class="bg-slate-100">
+            <tr>
+              <th class="border p-2">Materia</th><th class="border p-2">Asesor</th>
+              <th class="border p-2">Fecha</th><th class="border p-2">Hora</th>
+              <th class="border p-2">Modalidad</th><th class="border p-2">Ubicación</th>
+              <th class="border p-2">Promedio</th>
+            </tr>
+          </thead>
+          <tbody id="franjasBody">
+            <tr><td colspan="7" class="border p-3 text-slate-500">Aún no hay resultados.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold">3. Consultar catálogo de materias</h2>
+      <p class="mt-1 text-sm text-slate-600">Lee <code>materia</code>. El resultado debe respetar la política RLS <code>materias_lectura</code> según el usuario autenticado.</p>
+      <button id="materiasBtn" class="mt-4 rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">Consultar materias</button>
+      <div id="materiasStatus" class="mt-3 text-sm" aria-live="polite"></div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="min-w-full border-collapse text-left text-sm">
+          <thead id="materiasHead" class="bg-slate-100"></thead>
+          <tbody id="materiasBody"><tr><td class="border p-3 text-slate-500">Aún no hay resultados.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold">4. Ejecutar función RPC</h2>
+      <p class="mt-1 text-sm text-slate-600">Prueba <code>marcar_notificaciones_leidas</code> sin parámetros. Si tu función devuelve datos, se mostrarán aquí.</p>
+      <button id="rpcBtn" class="mt-4 rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white hover:bg-indigo-800">Ejecutar marcar_notificaciones_leidas</button>
+      <pre id="rpcResult" class="mt-3 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-emerald-200" aria-live="polite">Aún no se ha ejecutado la función.</pre>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold">5. Prueba de error: reporte con estudiante</h2>
+      <p class="mt-1 text-sm text-slate-600">Inicia sesión con un estudiante y pulsa el botón. La función debe rechazar la operación y la página debe mostrar el texto recibido en <code>error.message</code>.</p>
+      <button id="errorBtn" class="mt-4 rounded-lg bg-rose-700 px-4 py-2 font-semibold text-white hover:bg-rose-800">Probar reporte_materias como estudiante</button>
+      <div id="errorResult" class="mt-3 rounded-lg bg-slate-50 p-3 text-sm" aria-live="polite">La respuesta de la base de datos aparecerá aquí.</div>
+    </section>
+
+    <section class="rounded-xl border border-amber-300 bg-amber-50 p-5">
+      <h2 class="font-bold text-amber-900">6. Medición de rendimiento (RNF-003)</h2>
+      <p class="mt-1 text-sm text-amber-900">Cada consulta muestra su duración aproximada en milisegundos. Para la evidencia de Network: abre las herramientas del navegador con F12 → Red/Network, activa “Preserve log” si lo necesitas y repite cada prueba. Revisa la duración de la solicitud a <code>/rest/v1/</code> o <code>/rest/v1/rpc/</code>. La meta es ≤ 2,000 ms.</p>
+    </section>
+  </main>
+
+  <script>
+    // URL del proyecto TutorConnect. Usa la clave publicable/anon, nunca service_role.
+
+    
+    const $ = (id) => document.getElementById(id);
+
+    function setMessage(id, message, isError = false) {
+      const el = $(id);
+      el.textContent = message;
+      el.className = `mt-3 text-sm ${isError ? 'font-medium text-rose-700' : 'text-slate-600'}`;
+    }
+
+    function durationText(start) {
+      return `Tiempo en JavaScript: ${(performance.now() - start).toFixed(0)} ms`;
+    }
+
+    function safeCell(value) {
+      return value === null || value === undefined ? '' : String(value);
+    }
+
+    // Intenta localizar columnas aunque la vista use variantes comunes de nombre.
+    function pick(row, candidates) {
+      const key = Object.keys(row).find(k =>
+        candidates.some(c => k.toLowerCase() === c.toLowerCase())
+      );
+      return key ? row[key] : '';
+    }
+
+    $('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      $('authStatus').textContent = 'Iniciando sesión...';
+
+      const { data, error } = await db.auth.signInWithPassword({
+        email: $('email').value.trim(),
+        password: $('password').value
+      });
+
+      if (error) {
+        $('authStatus').textContent = `Error de inicio de sesión: ${error.message}`;
+        $('authStatus').className = 'mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-700';
+        return;
+      }
+
+      $('authStatus').textContent = `Sesión iniciada: ${data.user.email}`;
+      $('authStatus').className = 'mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800';
+    });
+
+    $('logoutBtn').addEventListener('click', async () => {
+      const { error } = await db.auth.signOut();
+      $('authStatus').textContent = error ? `Error al salir: ${error.message}` : 'Sesión cerrada.';
+    });
+
+    $('franjasBtn').addEventListener('click', async () => {
+      const start = performance.now();
+      setMessage('franjasStatus', 'Consultando vista...');
+
+      const { data, error } = await db
+        .from('v_franjas_disponibles')
+        .select();
+
+      if (error) {
+        $('franjasBody').innerHTML = '';
+        setMessage('franjasStatus', `Error de base de datos: ${error.message} · ${durationText(start)}`, true);
+        return;
+      }
+
+      const tbody = $('franjasBody');
+      tbody.replaceChildren();
+
+      if (!data || data.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 7;
+        td.className = 'border p-3 text-slate-500';
+        td.textContent = 'La vista no devolvió registros.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        data.forEach(row => {
+          const values = [
+              pick(row, ['materia', 'nombre_materia']),
+              pick(row, ['asesor', 'nombre_asesor']),
+              pick(row, ['fecha']),
+              pick(row, ['hora', 'hora_inicio']),
+              pick(row, ['modalidad']),
+              pick(row, ['ubicacion_presencial', 'ubicacion', 'ubicación', 'lugar']),
+              pick(row, ['promedio', 'calificacion_promedio', 'calificación_promedio'])
+          ];
+          const tr = document.createElement('tr');
+          values.forEach(value => {
+            const td = document.createElement('td');
+            td.className = 'border p-2';
+            td.textContent = safeCell(value);
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+      setMessage('franjasStatus', `${data.length} registro(s). ${durationText(start)}`);
+    });
+
+    $('materiasBtn').addEventListener('click', async () => {
+      const start = performance.now();
+      setMessage('materiasStatus', 'Consultando catálogo...');
+
+      const { data, error } = await db.from('materia').select();
+
+      if (error) {
+        $('materiasHead').replaceChildren();
+        $('materiasBody').replaceChildren();
+        setMessage('materiasStatus', `Error de base de datos: ${error.message} · ${durationText(start)}`, true);
+        return;
+      }
+
+      const head = $('materiasHead');
+      const body = $('materiasBody');
+      head.replaceChildren();
+      body.replaceChildren();
+
+      if (!data || data.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.className = 'border p-3 text-slate-500';
+        td.textContent = 'No hay materias visibles para este usuario.';
+        tr.appendChild(td);
+        body.appendChild(tr);
+      } else {
+        const columns = Object.keys(data[0]);
+        const headerRow = document.createElement('tr');
+        columns.forEach(column => {
+          const th = document.createElement('th');
+          th.className = 'border p-2';
+          th.textContent = column;
+          headerRow.appendChild(th);
+        });
+        head.appendChild(headerRow);
+
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          columns.forEach(column => {
+            const td = document.createElement('td');
+            td.className = 'border p-2';
+            td.textContent = safeCell(row[column]);
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        });
+      }
+      setMessage('materiasStatus', `${data.length} materia(s) visibles. ${durationText(start)}`);
+    });
+
+    $('rpcBtn').addEventListener('click', async () => {
+      const start = performance.now();
+      $('rpcResult').textContent = 'Ejecutando RPC...';
+
+      const { data, error } = await db.rpc('marcar_notificaciones_leidas');
+
+      $('rpcResult').textContent = error
+        ? `Error: ${error.message}\n${durationText(start)}`
+        : `${JSON.stringify(data, null, 2)}\n${durationText(start)}`;
+    });
+
+    $('errorBtn').addEventListener('click', async () => {
+      const start = performance.now();
+      const result = $('errorResult');
+      result.textContent = 'Ejecutando reporte_materias...';
+
+      const { data, error } = await db.rpc('reporte_materias', {
+        p_desde: '2026-10-01',
+        p_hasta: '2026-12-31'
+      });
+
+      if (error) {
+        // Se muestra exactamente el mensaje enviado por PostgreSQL/Supabase.
+        result.textContent = `Mensaje recibido (error.message): ${error.message}\n${durationText(start)}`;
+        result.className = 'mt-3 whitespace-pre-wrap rounded-lg bg-rose-50 p-3 text-sm font-medium text-rose-800';
+      } else {
+        result.textContent = `La función no devolvió error. Resultado:\n${JSON.stringify(data, null, 2)}\n${durationText(start)}\n\nVerifica que hayas iniciado sesión con un usuario estudiante para esta prueba.`;
+        result.className = 'mt-3 whitespace-pre-wrap rounded-lg bg-amber-50 p-3 text-sm text-amber-900';
+      }
+    });
+
+    // Recupera y muestra una sesión existente al recargar la página.
+    db.auth.getUser().then(({ data, error }) => {
+      if (error) return;
+      if (data.user) $('authStatus').textContent = `Sesión activa: ${data.user.email}`;
+    });
+  </script>
+</body>
+</html>
