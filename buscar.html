@@ -6,7 +6,7 @@
   <title>TutorConnect - Buscar Asesoría</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/estilos.css">
-  <script src="js/catalogo.js" defer></script>
+
 </head>
 <body>
   
@@ -76,36 +76,31 @@
       </div>
     </div>
 
-    <p class="text-sm font-semibold text-slate-700 mb-5">1 horarios disponibles</p>
+    <p class="text-sm font-semibold text-slate-700 mb-5">Selecciona un horario de los resultados de búsqueda.</p>
     
     <!-- Grid adaptable: 1 col móvil, 2 tablets, 3 laptops, 4 pantallas grandes -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full" id="grid-resultados">
-      
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition">
-        <div class="flex items-center space-x-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm border border-blue-100">MT</div>
-          <div>
-            <h3 class="text-sm font-bold text-slate-900 leading-tight">Mtra. Ana Torres</h3>
-            <p class="text-xs text-amber-500 font-bold mt-0.5">★★★★★ <span class="text-slate-500 font-normal">5.0 (8)</span></p>
-          </div>
-        </div>
-        <div class="text-xs text-slate-500 space-y-1.5 mb-4">
-          <p class="flex items-center">🕒 <span class="ml-1">10:00 - 11:00 • Mié 15 oct</span></p>
-        </div>
-        <div class="flex gap-2 mb-5">
-          <span class="text-[10px] font-bold px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-100">Virtual</span>
-          <span class="text-[10px] font-bold px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Libre</span>
-        </div>
-        <button class="w-full bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold py-2.5 rounded-lg transition shadow-sm">Solicitar asesoría</button>
-      </div>
-      
+      <!-- T15a: botones con data-id-franja dentro de este contenedor. -->
     </div>
   </main>
+
+<dialog id="modal-solicitar" aria-labelledby="titulo-solicitar" class="rounded-xl p-6 w-[calc(100%-2rem)] max-w-lg shadow-2xl backdrop:bg-slate-900/60">
+  <h2 id="titulo-solicitar" class="text-xl font-bold mb-4">Confirmar solicitud de asesoría</h2>
+  <p id="solicitud-cargando" role="status">Cargando horario…</p>
+  <dl id="solicitud-resumen" class="space-y-2 text-sm"></dl>
+  <p id="solicitud-aviso" class="my-4 text-sm text-slate-600" hidden>El enlace de la sesión virtual se mostrará cuando el asesor acepte</p>
+  <p id="solicitud-error" class="my-4 text-sm text-red-700" role="alert" hidden></p>
+  <div class="flex flex-wrap justify-end gap-3 mt-6">
+    <button type="button" id="solicitud-cancelar" class="border rounded-lg px-4 py-2" autofocus>Cancelar</button>
+    <button type="button" id="solicitud-confirmar" class="bg-[#1B396A] text-white rounded-lg px-4 py-2 disabled:opacity-50" disabled>Confirmar solicitud</button>
+  </div>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/sesion.js"></script>
 <script>
-  iniciarPaginaProtegida();
+  window.t15bSesionLista = iniciarPaginaProtegida('Estudiante');
 </script>
+<script src="js/solicitudes.js"></script>
 </body>
 </html>

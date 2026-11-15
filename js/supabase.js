@@ -20,9 +20,11 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
    Si falla, muestra el mensaje original y regresa null.
    Si sale bien, regresa los datos.
    --------------------------------------------------------- */
-async function ejecutar(nombre, parametros = {}) {
+// propagarError permite manejar mensajes en un modal; el uso anterior no cambia.
+async function ejecutar(nombre, parametros = {}, opciones = {}) {
   const { data, error } = await db.rpc(nombre, parametros);
   if (error) {
+    if (opciones.propagarError) throw error;
     mostrarError(error.message);
     return null;
   }
