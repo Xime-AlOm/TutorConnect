@@ -1,10 +1,8 @@
 // =====================================================================
-// js/catalogo.js · Catálogo de materias (T12 · TC-15 · HU-002)
-// Sección «Catálogo de materias» de admin.html (SCR-007).
+// js/catalogo.js · Catálogo de materias (T12 · HU-002) y
+// Postulación / dictamen de asesores (T13 · HU-003)
 // Requiere: js/supabase.js (db, mostrarError, mostrarExito,
 // mostrarCargando) y js/sesion.js (iniciarPaginaProtegida).
-// Las materias no se borran: se desactivan (estado_activo = false)
-// para que el historial y los reportes conserven las asesorías pasadas.
 // =====================================================================
 
 const MSG_DUPLICADO = 'Esa materia ya existe en esta carrera';
@@ -59,7 +57,6 @@ function pintarTabla() {
   const vacio = document.getElementById('catalogo-vacio');
   const sinResultados = document.getElementById('catalogo-sin-resultados');
 
-  // Estado vacío: no hay ninguna materia en el catálogo
   vacio.classList.toggle('hidden', materias.length > 0);
 
   const filtradas = materias.filter((m) => {
@@ -95,7 +92,6 @@ function pintarTabla() {
           ${botonEstado}
         </div>
       </td>`;
-    // textContent para no inyectar HTML con los nombres
     fila.children[0].textContent = m.nombre_materia;
     fila.children[1].textContent = m.carrera ? m.carrera.nombre_carrera : '—';
 
@@ -125,7 +121,6 @@ function cerrarModalMateria() {
   materiaEditando = null;
 }
 
-// Muestra un error dentro del modal (no detrás de él)
 function errorModal(mensaje) {
   const caja = document.getElementById('materia-error');
   caja.textContent = mensaje;
@@ -137,7 +132,7 @@ function errorModal(mensaje) {
 // ---------------------------------------------------------------------
 async function guardarMateria(evento) {
   evento.preventDefault();
-  const nombre = document.getElementById('materia-nombre').value.trim(); // sin espacios al inicio/final
+  const nombre = document.getElementById('materia-nombre').value.trim();
   const idCarrera = document.getElementById('materia-carrera').value;
   const boton = document.getElementById('btn-guardar-materia');
 
@@ -154,7 +149,6 @@ async function guardarMateria(evento) {
       : await db.from('materia').insert(datos);
 
     if (error) {
-      // 23505 = valor duplicado (restricción uq_materia_nombre_carrera)
       const duplicado = error.code === '23505' || (error.message || '').includes('uq_materia_nombre_carrera');
       errorModal(duplicado ? MSG_DUPLICADO : error.message);
       return;
@@ -184,7 +178,6 @@ function cerrarConfirmacion() {
   materiaConfirmar = null;
 }
 
-// cambiarEstadoMateria(): baja lógica (false) o reactivación (true)
 async function cambiarEstadoMateria(materia, activa, boton) {
   mostrarCargando(boton, true);
   try {
@@ -204,8 +197,7 @@ async function cambiarEstadoMateria(materia, activa, boton) {
 }
 
 // ---------------------------------------------------------------------
-// Arranque: admin.html llama a iniciarCatalogo() después de comprobar
-// que el usuario es Coordinador.
+// Arranque T12: Catálogo de materias en admin.html
 // ---------------------------------------------------------------------
 async function iniciarCatalogo() {
   document.getElementById('btn-agregar-materia').onclick = () => abrirModalMateria();
@@ -223,4 +215,287 @@ async function iniciarCatalogo() {
 
   await cargarCarrerasCatalogo();
   await listarMaterias();
+}
+
+
+// =====================================================================
+// T13 · HU-003 · Postulación como asesor y dictamen del coordinador
+// =====================================================================
+
+let misPostulaciones = [];
+let postulacionesAdmin = [];
+let tabPostulaciones = 'pendientes'; // 'pendientes' | 'historial'
+let postulacionRechazar = null;
+
+function formatearFecha(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function badgeEstadoPostulacion(estado) {
+  if (estado === 'Aprobada') {
+    return '<span class="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">Aprobada</span>';
+  }
+  if (estado === 'Rechazada') {
+    return '<span class="bg-rose-100 text-rose-800 border border-rose-200 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">Rechazada</span>';
+  }
+  return '<span class="bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap">Pendiente</span>';
+}
+
+// ---------------------------------------------------------------------
+// 1. Parte Estudiante / Profesor (postulacion.html · SCR-006)
+// ---------------------------------------------------------------------
+
+async function cargarSelectMateriasPostulacion() {
+  const select = document.getElementById('select-materia');
+  if (!select) return;
+
+  const { data, error } = await db
+    .from('materia')
+    .select('id_materia, nombre_materia, carrera(nombre_carrera)')
+    .eq('estado_activo', true)
+    .order('nombre_materia');
+
+  if (error) { mostrarError(error.message); return; }
+
+  const yaPostuladas = new Set(misPostulaciones.map((p) => Number(p.id_materia)));
+  select.innerHTML = '<option value="" disabled selected>-- Elige una materia activa --</option>';
+
+  data.forEach((m) => {
+    const carreraTexto = m.carrera ? ` (${m.carrera.nombre_carrera})` : '';
+    const postulada = yaPostuladas.has(Number(m.id_materia));
+    const etiqueta = `${m.nombre_materia}${carreraTexto}${postulada ? ' — Ya postulada' : ''}`;
+    const opcion = new Option(etiqueta, m.id_materia);
+    opcion.disabled = postulada;
+    select.add(opcion);
+  });
+}
+
+// listarMisPostulaciones(): consulta v_postulaciones y dibuja la tabla del usuario
+async function listarMisPostulaciones() {
+  const { data, error } = await db
+    .from('v_postulaciones')
+    .select('*')
+    .order('fecha_solicitud', { ascending: false });
+
+  if (error) { mostrarError(error.message); return; }
+  misPostulaciones = data || [];
+
+  const tbody = document.getElementById('tabla-mis-postulaciones');
+  const vacio = document.getElementById('postulaciones-vacio');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  vacio.classList.toggle('hidden', misPostulaciones.length > 0);
+
+  misPostulaciones.forEach((p) => {
+    const fila = document.createElement('tr');
+    fila.className = 'hover:bg-slate-50 transition';
+
+    const dictamenTexto = p.fecha_dictamen
+      ? formatearFecha(p.fecha_dictamen)
+      : '<span class="text-slate-400 italic">En revisión</span>';
+
+    fila.innerHTML = `
+      <td class="px-5 py-4 font-semibold text-slate-900"></td>
+      <td class="px-5 py-4 text-slate-500">${formatearFecha(p.fecha_solicitud)}</td>
+      <td class="px-5 py-4">${badgeEstadoPostulacion(p.estado_autorizacion)}</td>
+      <td class="px-5 py-4 text-slate-500">${dictamenTexto}</td>`;
+    fila.children[0].textContent = p.nombre_materia;
+
+    tbody.appendChild(fila);
+  });
+}
+
+// postular(): llama a postular_materia(p_id_materia) y recarga vista
+async function postular(idMateria, boton) {
+  mostrarCargando(boton, true);
+  try {
+    const { error } = await db.rpc('postular_materia', {
+      p_id_materia: Number(idMateria)
+    });
+
+    if (error) {
+      mostrarError(error.message);
+      return;
+    }
+
+    document.getElementById('modal-confirmar-postulacion').classList.add('hidden');
+    mostrarExito('Solicitud enviada correctamente');
+    await listarMisPostulaciones();
+    await cargarSelectMateriasPostulacion();
+  } finally {
+    mostrarCargando(boton, false);
+  }
+}
+
+async function iniciarPostulacion() {
+  const form = document.getElementById('form-postulacion');
+  const select = document.getElementById('select-materia');
+  const modal = document.getElementById('modal-confirmar-postulacion');
+  const textoConfirmar = document.getElementById('texto-confirmar-postulacion');
+  const btnCancelar = document.getElementById('btn-cancelar-postulacion');
+  const btnConfirmar = document.getElementById('btn-confirmar-postulacion');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!select.value) {
+      mostrarError('Selecciona una materia activa del catálogo.');
+      return;
+    }
+    const nombreMateria = select.options[select.selectedIndex].textContent;
+    textoConfirmar.textContent = `¿Deseas enviar tu solicitud para impartir asesorías de "${nombreMateria}"?`;
+    modal.classList.remove('hidden');
+  });
+
+  btnCancelar.onclick = () => modal.classList.add('hidden');
+  btnConfirmar.onclick = () => postular(select.value, btnConfirmar);
+
+  await listarMisPostulaciones();
+  await cargarSelectMateriasPostulacion();
+}
+
+// ---------------------------------------------------------------------
+// 2. Parte Coordinador (admin.html · SCR-007)
+// ---------------------------------------------------------------------
+
+// listarPostulacionesPendientes(): consulta v_postulaciones (todas para Coordinador)
+async function listarPostulacionesPendientes() {
+  const { data, error } = await db
+    .from('v_postulaciones')
+    .select('*')
+    .order('fecha_solicitud', { ascending: false });
+
+  if (error) { mostrarError(error.message); return; }
+  postulacionesAdmin = data || [];
+
+  const totalPendientes = postulacionesAdmin.filter((p) => p.estado_autorizacion === 'Pendiente').length;
+  const contador = document.getElementById('contador-pendientes');
+  if (contador) contador.textContent = totalPendientes;
+
+  pintarTablaPostulacionesAdmin();
+}
+
+function pintarTablaPostulacionesAdmin() {
+  const tbody = document.getElementById('tabla-postulaciones-admin');
+  const vacio = document.getElementById('postulaciones-admin-vacio');
+  const colAccion = document.getElementById('col-postulacion-accion');
+  if (!tbody) return;
+
+  const esPendientes = tabPostulaciones === 'pendientes';
+  colAccion.textContent = esPendientes ? 'Acciones' : 'Dictamen';
+
+  const lista = postulacionesAdmin.filter((p) =>
+    esPendientes ? p.estado_autorizacion === 'Pendiente' : p.estado_autorizacion !== 'Pendiente'
+  );
+
+  tbody.innerHTML = '';
+  vacio.textContent = esPendientes
+    ? 'No hay postulaciones pendientes por dictaminar.'
+    : 'Aún no hay dictámenes registrados en el historial.';
+  vacio.classList.toggle('hidden', lista.length > 0);
+
+  lista.forEach((p) => {
+    const fila = document.createElement('tr');
+    fila.className = 'hover:bg-slate-50 transition';
+
+    const rolEtiqueta = p.rol_solicitante === 'Estudiante'
+      ? 'Estudiante (tutor par)'
+      : 'Profesor';
+
+    const celdaFinal = esPendientes
+      ? `<div class="flex space-x-2">
+           <button data-accion="aprobar" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
+           <button data-accion="rechazar" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
+         </div>`
+      : `<div class="flex flex-col items-start gap-1">
+           ${badgeEstadoPostulacion(p.estado_autorizacion)}
+           <span class="text-xs text-slate-400">${formatearFecha(p.fecha_dictamen)}</span>
+         </div>`;
+
+    fila.innerHTML = `
+      <td class="px-4 py-3.5 font-medium text-slate-900"></td>
+      <td class="px-4 py-3.5 text-slate-600">${rolEtiqueta}</td>
+      <td class="px-4 py-3.5 font-medium text-slate-800"></td>
+      <td class="px-4 py-3.5 text-slate-500">${formatearFecha(p.fecha_solicitud)}</td>
+      <td class="px-4 py-3.5">${celdaFinal}</td>`;
+
+    fila.children[0].textContent = p.solicitante;
+    fila.children[2].textContent = p.nombre_materia;
+
+    if (esPendientes) {
+      const btnAprobar = fila.querySelector('[data-accion="aprobar"]');
+      const btnRechazar = fila.querySelector('[data-accion="rechazar"]');
+      btnAprobar.onclick = () => dictaminar(p.id_asesor_materia, true, btnAprobar);
+      btnRechazar.onclick = () => abrirModalRechazo(p);
+    }
+
+    tbody.appendChild(fila);
+  });
+}
+
+function abrirModalRechazo(postulacion) {
+  postulacionRechazar = postulacion;
+  document.getElementById('texto-confirmar-rechazo').textContent =
+    `¿Rechazar la postulación de ${postulacion.solicitante} para la materia ${postulacion.nombre_materia}?`;
+  document.getElementById('modal-confirmar-rechazo').classList.remove('hidden');
+}
+
+function cerrarModalRechazo() {
+  document.getElementById('modal-confirmar-rechazo').classList.add('hidden');
+  postulacionRechazar = null;
+}
+
+// dictaminar(): llama a dictaminar_postulacion(p_id, p_aprobar) y actualiza la tabla
+async function dictaminar(pId, pAprobar, boton) {
+  mostrarCargando(boton, true);
+  try {
+    const { error } = await db.rpc('dictaminar_postulacion', {
+      p_id: Number(pId),
+      p_aprobar: Boolean(pAprobar)
+    });
+
+    if (error) {
+      mostrarError(error.message);
+      return;
+    }
+
+    cerrarModalRechazo();
+    mostrarExito(pAprobar ? 'Postulación aprobada' : 'Postulación rechazada');
+    await listarPostulacionesPendientes();
+  } finally {
+    mostrarCargando(boton, false);
+  }
+}
+
+async function iniciarPostulacionesAdmin() {
+  const tabPend = document.getElementById('tab-postulaciones-pendientes');
+  const tabHist = document.getElementById('tab-postulaciones-historial');
+
+  tabPend.onclick = () => {
+    tabPostulaciones = 'pendientes';
+    tabPend.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold bg-[#1B396A] text-white transition';
+    tabHist.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+    pintarTablaPostulacionesAdmin();
+  };
+
+  tabHist.onclick = () => {
+    tabPostulaciones = 'historial';
+    tabHist.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold bg-[#1B396A] text-white transition';
+    tabPend.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+    pintarTablaPostulacionesAdmin();
+  };
+
+  document.getElementById('btn-cancelar-rechazo').onclick = cerrarModalRechazo;
+  document.getElementById('btn-confirmar-rechazo').onclick = (e) => {
+    if (postulacionRechazar) {
+      dictaminar(postulacionRechazar.id_asesor_materia, false, e.currentTarget);
+    }
+  };
+
+  await listarPostulacionesPendientes();
 }
