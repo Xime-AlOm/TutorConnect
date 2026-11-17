@@ -7,7 +7,7 @@
 function seguro(t) {
   const d = document.createElement('div');
   d.textContent = t ?? '';
-  return d.innerHTML.replace(/"/g, '"');
+  return d.innerHTML.replace(/"/g, '&quot;');
 }
 
 /* =========================================================
@@ -33,26 +33,26 @@ function configurarFechaMinima() {
   }
 }
 
-// Carga el <select> con todas las materias activas
+// Carga el <select> del modal FORM-001 solo con las materias aprobadas del asesor
 async function cargarMateriasAprobadas() {
   const select = document.getElementById('franja-materia');
   if (!select) return;
 
   const { data, error } = await db
-    .from('materia')
+    .from('v_postulaciones')
     .select('id_materia, nombre_materia')
-    .eq('estado_activo', true)
+    .eq('estado_autorizacion', 'Aprobada')
     .order('nombre_materia');
 
   if (error) {
-    console.error('Error al cargar materias:', error.message);
+    console.error('Error al cargar materias aprobadas:', error.message);
     return;
   }
 
   select.innerHTML = '<option value="" disabled selected>Selecciona una materia</option>';
 
   if (data.length === 0) {
-    select.innerHTML = '<option value="" disabled>No hay materias disponibles</option>';
+    select.innerHTML = '<option value="" disabled>No tienes materias aprobadas</option>';
     return;
   }
 
@@ -299,7 +299,7 @@ function mostrarToast(msg) {
    2. MÓDULO DE BÚSQUEDA DE ASESORÍAS (SCR-003 / T15a)
    ========================================================= */
 
-// Carga las materias activas en el select de filtros
+// Carga las materias activas en el select de filtros de buscar.html
 async function cargarFiltroMaterias() {
   const selectFiltro = document.getElementById('filtro-materia');
   if (!selectFiltro) return;
