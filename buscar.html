@@ -6,7 +6,7 @@
   <title>TutorConnect - Buscar Asesoría</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/estilos.css">
-  <script src="js/franjas.js" defer></script>
+
 </head>
 <body class="bg-[#F8FAFC] flex min-h-screen w-full m-0 p-0 overflow-x-hidden flex-col">
 
@@ -106,21 +106,32 @@
 
   </main>
 
+<dialog id="modal-solicitar" aria-labelledby="titulo-solicitar" class="rounded-xl p-6 w-[calc(100%-2rem)] max-w-lg shadow-2xl backdrop:bg-slate-900/60">
+  <h2 id="titulo-solicitar" class="text-xl font-bold mb-4">Confirmar solicitud de asesoría</h2>
+  <p id="solicitud-cargando" role="status">Cargando horario…</p>
+  <dl id="solicitud-resumen" class="space-y-2 text-sm"></dl>
+  <p id="solicitud-aviso" class="my-4 text-sm text-slate-600" hidden>El enlace de la sesión virtual se mostrará cuando el asesor acepte</p>
+  <p id="solicitud-error" class="my-4 text-sm text-red-700" role="alert" hidden></p>
+  <div class="flex flex-wrap justify-end gap-3 mt-6">
+    <button type="button" id="solicitud-cancelar" class="border rounded-lg px-4 py-2" autofocus>Cancelar</button>
+    <button type="button" id="solicitud-confirmar" class="bg-[#1B396A] text-white rounded-lg px-4 py-2 disabled:opacity-50" disabled>Confirmar solicitud</button>
+  </div>
+</dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
   <script src="js/sesion.js"></script>
+  <script src="js/franjas.js"></script>
   <script>
-    iniciarPaginaProtegida().then(usuario => {
-      if (usuario) {
-        // Iniciales Avatar
-        const inc = usuario.nombre_completo.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-        document.getElementById('avatar-iniciales').textContent = inc;
-        
-        // Inicializar Búsqueda
-        cargarFiltroMaterias();
-        window.recargarBusqueda();
-      }
-    });
+    window.t15bSesionLista = iniciarPaginaProtegida('Estudiante');
+    window.t15bSesionLista.then(async usuario => {
+      if (!usuario) return;
+      document.getElementById('avatar-iniciales').textContent =
+        (usuario.nombre_completo || '').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+      await cargarFiltroMaterias();
+      await window.recargarBusqueda();
+    }).catch(error => mostrarError(error.message || 'No se pudo cargar la búsqueda.'));
   </script>
+  <script src="js/solicitudes.js"></script>
 </body>
 </html>
