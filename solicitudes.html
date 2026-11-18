@@ -52,31 +52,53 @@
 
     <h1 class="text-2xl font-bold text-slate-900 mb-6">Gestor de solicitudes y citas</h1>
 
-    <section id="t15b-panel-estudiante" hidden class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Mis solicitudes como estudiante</h2>
-      <div id="t15b-mis-citas" class="space-y-4" aria-live="polite">Cargando solicitudes…</div>
+    <!-- ===== Mis citas del estudiante (T17 · HU-007) ===== -->
+    <section id="t15b-panel-estudiante" hidden class="mb-10">
+      <h2 class="text-xl font-semibold">Mis citas</h2>
+
+      <div class="flex space-x-6 mt-4 mb-6 border-b border-slate-200" data-grupo="est">
+        <button type="button" data-pestana="est-pendientes" class="pb-3 text-sm">Pendientes (<span id="contador-est-pendientes">0</span>)</button>
+        <button type="button" data-pestana="est-proximas" class="pb-3 text-sm">Próximas (<span id="contador-est-proximas">0</span>)</button>
+        <button type="button" data-pestana="est-historial" class="pb-3 text-sm">Historial (<span id="contador-est-historial">0</span>)</button>
+      </div>
+
+      <div id="est-pendientes" data-panel="est" class="space-y-4"></div>
+      <div id="est-proximas" data-panel="est" class="space-y-4 hidden"></div>
+      <div id="est-historial" data-panel="est" class="space-y-4 hidden"></div>
+
+      <!-- Estado vacío: el estudiante no tiene ninguna asesoría -->
+      <div id="est-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 shadow-sm text-center">
+        <p class="text-sm text-slate-500 mb-4">Aún no tienes asesorías</p>
+        <a href="buscar.html" class="inline-block px-5 py-2.5 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg transition">Buscar una asesoría</a>
+      </div>
     </section>
 
     <section id="t16-panel-asesor" hidden>
     <div class="mb-6">
       <h2 class="text-xl font-semibold">Solicitudes recibidas como asesor</h2>
 
-      <!-- Pestañas: Pendientes (T16, asesor). Las demás las completan otras tareas. -->
-      <div class="flex space-x-6 mt-4 border-b border-slate-200">
-        <button class="pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A]">
+      <!-- Pestañas del asesor: Pendientes (T16) y Próximas con Cancelar (T17) -->
+      <div class="flex space-x-6 mt-4 border-b border-slate-200" data-grupo="asesor">
+        <button type="button" data-pestana="seccion-pendientes" class="pb-3 text-sm">
           Pendientes (<span id="contador-pendientes">0</span>)
         </button>
-        <button disabled class="pb-3 text-sm font-medium text-slate-400 cursor-not-allowed">Confirmadas</button>
-        <button disabled class="pb-3 text-sm font-medium text-slate-400 cursor-not-allowed">Concluidas / Historial</button>
+        <button type="button" data-pestana="seccion-proximas-asesor" class="pb-3 text-sm">
+          Próximas (<span id="contador-proximas-asesor">0</span>)
+        </button>
       </div>
     </div>
 
     <!-- ===== Pestaña Pendientes del asesor (T16 · HU-006) ===== -->
-    <section id="seccion-pendientes">
+    <section id="seccion-pendientes" data-panel="asesor">
       <div id="lista-pendientes" class="space-y-4"></div>
       <div id="pendientes-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 shadow-sm text-center text-sm text-slate-500">
         No tienes solicitudes pendientes
       </div>
+    </section>
+
+    <!-- ===== Pestaña Próximas del asesor (T17 · HU-007) ===== -->
+    <section id="seccion-proximas-asesor" data-panel="asesor" class="hidden">
+      <div id="lista-proximas-asesor" class="space-y-4"></div>
     </section>
     </section>
   </main>
@@ -127,7 +149,7 @@
     if (!usuario) return;
     if (usuario.rol === 'Estudiante') {
       document.getElementById('t15b-panel-estudiante').hidden = false;
-      await window.iniciarMisSolicitudesEstudiante();
+      await iniciarMisCitasEstudiante(); // T17 (reemplaza la lista simple de T15b)
     }
     if (usuario.rol === 'Profesor' || await esAsesorAprobado()) {
       document.getElementById('t16-panel-asesor').hidden = false;
