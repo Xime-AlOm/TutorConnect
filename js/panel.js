@@ -98,7 +98,7 @@ async function pintarProximasCitas() {
           </div>
           <h3 class="text-base font-bold text-slate-900 leading-tight">${seguro(c.nombre_materia)}</h3>
           <p class="text-sm text-slate-600 mt-1">${conQuien}</p>
-          <p class="text-xs text-slate-500 mt-1">${c.fecha} • ${horario} • ${c.modalidad}</p>
+          <p class="text-xs text-slate-500 mt-1">${c.fecha} · ${horario} · ${c.modalidad}</p>
         </div>
         <div class="flex flex-col space-y-2 w-full md:w-auto">${accion}</div>
       </div>`;

@@ -45,10 +45,9 @@
     </div>
   </header>
 
-
   <!-- Contenedor Principal (w-full) -->
   <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1">
-    
+
     <!-- Título y Selector de Periodo -->
     <div class="mb-8">
       <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Panel de administración</h1>
@@ -60,26 +59,18 @@
 
     <!-- Indicadores Estadísticos (Tarjetas Superiores) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 w-full">
-      
-      <!-- Solicitadas -->
       <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
         <p class="text-sm font-semibold text-slate-600">Solicitadas</p>
         <div class="w-8 h-1 bg-[#1B396A] rounded-full mt-3"></div>
       </div>
-      
-      <!-- Realizadas -->
       <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
         <p class="text-sm font-semibold text-slate-600">Realizadas</p>
         <div class="w-8 h-1 bg-emerald-600 rounded-full mt-3"></div>
       </div>
-      
-      <!-- Canceladas / No Realizadas -->
       <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
         <p class="text-sm font-semibold text-slate-600">Canceladas / no realizadas</p>
         <div class="w-8 h-1 bg-rose-600 rounded-full mt-3"></div>
       </div>
-      
-      <!-- Calificación Promedio -->
       <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
         <p class="text-sm font-semibold text-slate-600">Calificación promedio</p>
         <div class="flex items-center space-x-2 mt-2">
@@ -87,97 +78,70 @@
           <svg class="w-6 h-6 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
         </div>
       </div>
-      
     </div>
 
-    <!-- Sección de Gráficos y Tablas -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full">
-      
-      <!-- Gráfico de Demanda por materia -->
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h2 class="text-lg font-bold text-slate-900 mb-6">Demanda por materia</h2>
-        
-        <div class="space-y-5">
-          <!-- Item 1 -->
-          <div class="flex flex-col sm:flex-row sm:items-center">
-            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Cálculo Diferencial</span>
-            <div class="flex-1">
-              <div class="h-3.5 bg-[#0284c7] rounded-full w-[80%]"></div>
-            </div>
-          </div>
-          
-          <!-- Item 2 -->
-          <div class="flex flex-col sm:flex-row sm:items-center">
-            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0 leading-tight">Prog. Orientada a<br>Obj.</span>
-            <div class="flex-1">
-              <div class="h-3.5 bg-[#0284c7] rounded-full w-[65%]"></div>
-            </div>
-          </div>
-          
-          <!-- Item 3 -->
-          <div class="flex flex-col sm:flex-row sm:items-center">
-            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0 leading-tight">Estructura de<br>Datos</span>
-            <div class="flex-1">
-              <div class="h-3.5 bg-[#0284c7] rounded-full w-[50%]"></div>
-            </div>
-          </div>
-          
-          <!-- Item 4 -->
-          <div class="flex flex-col sm:flex-row sm:items-center">
-            <span class="w-full sm:w-40 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Física General</span>
-            <div class="flex-1">
-              <div class="h-3.5 bg-[#0284c7] rounded-full w-[30%]"></div>
-            </div>
-          </div>
+    <!-- Gráfico de Demanda por materia -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm w-full">
+      <h2 class="text-lg font-bold text-slate-900 mb-6">Demanda por materia</h2>
+      <div class="space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <span class="w-full sm:w-48 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Cálculo Diferencial</span>
+          <div class="flex-1"><div class="h-3.5 bg-[#0284c7] rounded-full w-[80%]"></div></div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <span class="w-full sm:w-48 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Prog. Orientada a Obj.</span>
+          <div class="flex-1"><div class="h-3.5 bg-[#0284c7] rounded-full w-[65%]"></div></div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <span class="w-full sm:w-48 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Estructura de Datos</span>
+          <div class="flex-1"><div class="h-3.5 bg-[#0284c7] rounded-full w-[50%]"></div></div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <span class="w-full sm:w-48 text-sm font-semibold text-slate-600 mb-2 sm:mb-0">Física General</span>
+          <div class="flex-1"><div class="h-3.5 bg-[#0284c7] rounded-full w-[30%]"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Sección: Postulaciones de asesores (T13 · HU-003) ===== -->
+    <section id="seccion-postulaciones" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Postulaciones</h2>
+          <p class="text-xs text-slate-500 mt-1">Dictamina solicitudes de estudiantes (tutores pares) y profesores para asesorar materias.</p>
+        </div>
+        <!-- Pestañas Pendientes / Historial -->
+        <div class="inline-flex rounded-lg border border-slate-200 p-1 bg-slate-50 self-start">
+          <button type="button" id="tab-postulaciones-pendientes" class="px-3.5 py-1.5 rounded-md text-xs font-bold bg-[#1B396A] text-white transition">
+            Postulaciones pendientes (<span id="contador-pendientes">0</span>)
+          </button>
+          <button type="button" id="tab-postulaciones-historial" class="px-3.5 py-1.5 rounded-md text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+            Historial de dictámenes
+          </button>
         </div>
       </div>
 
-      <!-- Tabla de Postulaciones -->
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-        <h2 class="text-lg font-bold text-slate-900 mb-4">Postulaciones de tutores pares</h2>
-        
-        <!-- Contenedor responsive para tabla -->
-        <div class="overflow-x-auto w-full border border-slate-200 rounded-lg flex-1">
-          <table class="w-full min-w-[500px] text-left text-sm text-slate-700">
-            <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold">
-              <tr>
-                <th class="px-4 py-3">Estudiante</th>
-                <th class="px-4 py-3">Materia</th>
-                <th class="px-4 py-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 bg-white">
-              
-              <tr class="hover:bg-slate-50 transition">
-                <td class="px-4 py-3.5 font-medium text-slate-900">Carlos Mendoza</td>
-                <td class="px-4 py-3.5">Estructura de Datos</td>
-                <td class="px-4 py-3.5">
-                  <div class="flex space-x-2">
-                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
-                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
-                  </div>
-                </td>
-              </tr>
-              
-              <tr class="hover:bg-slate-50 transition">
-                <td class="px-4 py-3.5 font-medium text-slate-900">Paola Ortiz</td>
-                <td class="px-4 py-3.5">Cálculo Integral</td>
-                <td class="px-4 py-3.5">
-                  <div class="flex space-x-2">
-                    <button class="bg-[#1B396A] hover:bg-[#13274A] text-white px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Aprobar</button>
-                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">Rechazar</button>
-                  </div>
-                </td>
-              </tr>
-              
-            </tbody>
-          </table>
-        </div>
-        
+      <div class="overflow-x-auto w-full border border-slate-200 rounded-lg">
+        <table class="w-full min-w-[650px] text-left text-sm text-slate-700">
+          <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold">
+            <tr>
+              <th class="px-4 py-3">Solicitante</th>
+              <th class="px-4 py-3">Rol</th>
+              <th class="px-4 py-3">Materia</th>
+              <th class="px-4 py-3">Fecha de solicitud</th>
+              <th id="col-postulacion-accion" class="px-4 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-postulaciones-admin" class="divide-y divide-slate-100 bg-white"></tbody>
+        </table>
       </div>
-      
-    </div>
-      <!-- ===== Sección: Catálogo de materias (T12 · HU-002) ===== -->
+
+      <p id="postulaciones-admin-vacio" class="hidden text-center text-slate-500 text-sm py-8">
+        No hay postulaciones pendientes por dictaminar.
+      </p>
+    </section>
+
+    <!-- ===== Sección: Catálogo de materias (T12 · HU-002) ===== -->
     <section id="seccion-catalogo" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 class="text-lg font-bold text-slate-900">Catálogo de materias</h2>
@@ -220,8 +184,21 @@
         <button id="btn-agregar-vacio" class="bg-[#1B396A] hover:bg-[#13274A] text-white px-4 py-2 rounded-lg text-sm font-bold transition">Agregar materia</button>
       </div>
       <p id="catalogo-sin-resultados" class="hidden text-center text-slate-500 py-6">No hay materias que coincidan con los filtros.</p>
-    </section> 
-</main>
+    </section>
+  </main>
+
+  <!-- ===== Diálogo: confirmar rechazo de postulación (T13) ===== -->
+  <div id="modal-confirmar-rechazo" class="hidden fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 class="text-lg font-bold text-slate-900">Rechazar postulación</h3>
+      <p id="texto-confirmar-rechazo" class="text-sm text-slate-600"></p>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button type="button" id="btn-cancelar-rechazo" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold transition">Cancelar</button>
+        <button type="button" id="btn-confirmar-rechazo" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Rechazar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Modal: alta / edición de materia (T12) ===== -->
   <div id="modal-materia" class="hidden fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
     <form id="form-materia" novalidate class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
@@ -257,15 +234,17 @@
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/sesion.js"></script>
-<script src="js/catalogo.js"></script>
-<script>
-  // Solo el coordinador entra; después se carga el catálogo
-  iniciarPaginaProtegida('Coordinador').then((usuario) => {
-    if (usuario) iniciarCatalogo();
-  });
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/sesion.js"></script>
+  <script src="js/catalogo.js"></script>
+  <script>
+    iniciarPaginaProtegida('Coordinador').then((usuario) => {
+      if (usuario) {
+        iniciarPostulacionesAdmin();
+        iniciarCatalogo();
+      }
+    });
+  </script>
 </body>
 </html>

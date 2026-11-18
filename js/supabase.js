@@ -12,17 +12,23 @@ const SUPABASE_URL = 'https://vdeksifprzazbsohniga.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_y6fiMx-jISNovoNzQiOVnA_LoX3WkcL';
 
 // 2. Cliente único que usan todas las páginas.
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// sessionStorage aísla la sesión por pestaña para poder probar varios roles a la vez.
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage: window.sessionStorage
+  }
+});
 /* ---------------------------------------------------------
    ejecutar(nombre, parametros)
    Llama una función de la base de datos (RPC).
    Si falla, muestra el mensaje original y regresa null.
    Si sale bien, regresa los datos.
    --------------------------------------------------------- */
-async function ejecutar(nombre, parametros = {}) {
+// propagarError permite manejar mensajes en un modal; el uso anterior no cambia.
+async function ejecutar(nombre, parametros = {}, opciones = {}) {
   const { data, error } = await db.rpc(nombre, parametros);
   if (error) {
+    if (opciones.propagarError) throw error;
     mostrarError(error.message);
     return null;
   }
