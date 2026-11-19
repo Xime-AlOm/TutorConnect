@@ -1,6 +1,7 @@
 # TutorConnect
 Plataforma web de tutorías y asesorías académicas del TecNM Campus Pachuca
-#Enlace publico:
+
+Enlace publico de TutorConnect:
 https://synapsesolutions-tutorconnect.github.io/TutorConnect/
 
 ## Usuarios de prueba — T04
