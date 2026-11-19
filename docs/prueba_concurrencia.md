@@ -62,19 +62,23 @@ Medidos en F12 → Red (Network) durante la fase 2.
 
 ## Parte 2 — T19: recorrido del flujo principal
 
-| # | Paso | Depende de | Estado |
-|---|---|---|---|
-| 1 | Registro | T10 | Pendiente de recorrer |
-| 2 | Inicio de sesión | T11 | Pendiente de recorrer |
-| 3 | Coordinador crea materia y aprueba asesor | T12 / T13 | Pendiente (T13 en curso) |
-| 4 | Asesor publica | T14 | Pendiente de recorrer |
-| 5 | Estudiante busca y solicita | T15a / T15b | Pendiente (en revisión / en curso) |
-| 6 | Asesor acepta (con enlace) | T16 | Pendiente de recorrer |
-| 7 | Estudiante ve la cita | T17 | Pendiente (por hacer) |
-| 8 | Cancelación | T17 | Pendiente (por hacer) |
+Recorrido hecho el 19/11/2026 en pantalla (incógnito, F12 → Console abierta), con cuentas nuevas:
+estudiante `estudiantet19@pachuca.tecnm.mx` y profesor `t19.profesor@pachuca.tecnm.mx`.
+
+| # | Paso | Depende de | Qué se hizo | Evidencia | ✔ |
+|---|---|---|---|---|---|
+| 1 | Registro | T10 | Registro del estudiante y del profesor T19 | T19-1a, T19-1b | ✔ |
+| 2 | Inicio de sesión | T11 | Contraseña incorrecta → «Correo o contraseña incorrectos»; correcta → panel | T19-2a, T19-2b | ✔ |
+| 3 | Coordinador crea materia y aprueba asesor | T12 / T13 | Alta de «Tópicos Avanzados de Programción»; el profesor T19 se postula (Pendiente) y el coordinador lo aprueba | T19-3a, T19-3b, T19-3c | ✔ |
+| 4 | Asesor publica | T14 | Profesor T19 publica lun 23/11 16:00 Virtual → Libre | T19-4 | ✔ |
+| 5 | Estudiante busca y solicita | T15a / T15b | Búsqueda por materia y fecha; solicitud confirmada → Pendiente | T19-5a, T19-5b | ✔ |
+| 6 | Asesor acepta (con enlace) | T16 | Acepta con https://meet.google.com/t19-abcd-efg → Aceptada | T19-6 | ✔ |
+| 7 | Estudiante ve la cita | T17 | Próximas: cita Aceptada con enlace clicable | T19-7 | ✔ |
+| 8 | Cancelación | T17 | Cancelar (> 48 h) → confirmación → Cancelada en Historial | T19-8 | ✔ |
 
 ## Errores encontrados
 
 | # | Pantalla | Pasos para reproducir | Esperado | Obtenido | Estado |
 |---|---|---|---|---|---|
-| | | | | | |
+| 1 | Cabecera (campana) y panel → Notificaciones | Con un estudiante que tiene una cita aceptada, abrir la campana o ver «Notificaciones» en el panel | Ver el aviso «Tu asesoría del … fue confirmada.» | La campana no responde y el panel muestra «No tienes notificaciones nuevas» (el aviso sí existe en la tabla `notificacion`) | Pendiente — corresponde a T21 (notificaciones internas) |
+| 2 | Datos de prueba (catálogo) | Revisar el nombre de la materia 5 en Administración | «Bases de Datos» | Sigue como «Taller de Base de Datos» desde las pruebas de T12 | Pendiente — renombrar desde Administración |
