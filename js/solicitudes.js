@@ -1,11 +1,16 @@
 // =====================================================================
 // js/solicitudes.js · Gestor de solicitudes y citas (SCR-005)
-// T16 · TC-19 · HU-006 · CU-004: el asesor acepta o rechaza solicitudes.
-// (T15b agrega aquí solicitarAsesoria(idFranja); no se pisan.)
+// T16 · HU-006 · CU-004: aceptar o rechazar solicitudes.
+// T20 · HU-008 · CU-005: cierre de la asesoría por el asesor (Realizada / No realizada).
 // Requiere: js/supabase.js (db, mostrarError, mostrarExito, mostrarCargando)
 // =====================================================================
 
+let todasLasCitas = [];       // registros de v_mis_citas
 let pendientes = [];          // solicitudes pendientes del asesor
+let porCerrar = [];           // citas aceptadas del asesor con puede_marcar = true
+let proximas = [];            // citas aceptadas vigentes (aún no terminan)
+let completadas = [];         // citas concluidas (historial)
+let tabActiva = 'pendientes';
 let solicitudActual = null;   // solicitud que se está aceptando/rechazando
 let accionConfirmar = null;   // función a ejecutar al confirmar el diálogo
 
@@ -38,6 +43,30 @@ function fechaLimite(fecha, hora) {
   });
 }
 
+// Calcula el tiempo restante de las 48 h posteriores al fin de la cita (RN-09)
+function calcularTiempoRestanteCierre(fecha, horaInicio) {
+  const inicio = new Date(`${fecha}T${horaInicio}`);
+  const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
+  const limite48h = new Date(fin.getTime() + 48 * 60 * 60 * 1000);
+  const diffMs = limite48h.getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return { texto: 'Plazo vencido (pasará a Sin registro)', urgente: true };
+  }
+
+  const totalMin = Math.floor(diffMs / (60 * 1000));
+  const horas = Math.floor(totalMin / 60);
+  const minutos = totalMin % 60;
+  const fechaLimiteStr = limite48h.toLocaleString('es-MX', {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+
+  return {
+    texto: `Tienes ${horas} h ${minutos} min para cerrar (vence ${fechaLimiteStr}) antes de que pase a Sin registro.`,
+    urgente: horas < 6,
+  };
+}
+
 // ---------------------------------------------------------------------
 // validarUrl(url): obligatorio y debe empezar con https://
 // ---------------------------------------------------------------------
@@ -53,27 +82,93 @@ function validarUrl(url) {
 }
 
 // ---------------------------------------------------------------------
-// listarPendientesAsesor(): solicitudes Pendientes donde soy el asesor
+// Control de pestañas en SCR-005
 // ---------------------------------------------------------------------
-async function listarPendientesAsesor() {
-  const lista = document.getElementById('lista-pendientes');
-  lista.innerHTML = '<div class="h-20 rounded-xl bg-slate-100 animate-pulse"></div>'.repeat(2);
+function cambiarTab(nombre) {
+  tabActiva = nombre;
+  const tabs = ['pendientes', 'por-cerrar', 'proximas', 'completadas'];
+
+  tabs.forEach((t) => {
+    const btn = document.getElementById(`tab-${t}`);
+    const sec = document.getElementById(`seccion-${t}`);
+    const activo = t === nombre;
+
+    if (btn) {
+      btn.className = activo
+        ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition'
+        : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition';
+    }
+    if (sec) {
+      sec.classList.toggle('hidden', !activo);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
+// Carga general de v_mis_citas y distribución por sección
+// ---------------------------------------------------------------------
+async function cargarMisCitas() {
+  const listaPend = document.getElementById('lista-pendientes');
+  const listaCerrar = document.getElementById('lista-por-cerrar');
+  const skeleton = '<div class="h-24 rounded-xl bg-slate-100 animate-pulse"></div>'.repeat(2);
+
+  if (listaPend) listaPend.innerHTML = skeleton;
+  if (listaCerrar) listaCerrar.innerHTML = skeleton;
 
   const { data, error } = await db
     .from('v_mis_citas')
     .select('*')
-    .eq('mi_papel', 'Asesor')
-    .eq('estado', 'Pendiente')
-    .order('fecha')
-    .order('hora_inicio');
+    .order('fecha', { ascending: false })
+    .order('hora_inicio', { ascending: false });
 
-  if (error) { lista.innerHTML = ''; mostrarError(error.message); return; }
+  if (error) {
+    if (listaPend) listaPend.innerHTML = '';
+    if (listaCerrar) listaCerrar.innerHTML = '';
+    mostrarError(error.message);
+    return;
+  }
 
-  pendientes = data;
-  document.getElementById('contador-pendientes').textContent = data.length;
+  todasLasCitas = data || [];
+
+  // 1. Pendientes (del asesor para T16; también pendientes del estudiante si entra)
+  pendientes = todasLasCitas
+    .filter((s) => s.estado === 'Pendiente')
+    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
+
+  // 2. Por cerrar: estado = 'Aceptada', usuario es asesor y now() >= fin (puede_marcar = true)
+  porCerrar = todasLasCitas
+    .filter((s) => s.puede_marcar === true)
+    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
+
+  // 3. Próximas / en curso: Aceptadas donde aún no termina la hora (puede_marcar = false)
+  proximas = todasLasCitas
+    .filter((s) => s.estado === 'Aceptada' && !s.puede_marcar)
+    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
+
+  // 4. Completadas / Historial: estados cerrados
+  const estadosFinales = ['Realizada', 'No realizada', 'Sin registro', 'Rechazada', 'Cancelada', 'Caducada'];
+  completadas = todasLasCitas.filter((s) => estadosFinales.includes(s.estado));
+
+  // Actualizar contadores
+  document.getElementById('contador-pendientes').textContent = pendientes.length;
+  document.getElementById('contador-por-cerrar').textContent = porCerrar.length;
+  document.getElementById('contador-proximas').textContent = proximas.length;
+  document.getElementById('contador-completadas').textContent = completadas.length;
+
   pintarPendientes();
+  pintarPorCerrar();
+  pintarProximas();
+  pintarCompletadas();
 }
 
+// Alias compatible con llamadas previas de T16
+async function listarPendientesAsesor() {
+  await cargarMisCitas();
+}
+
+// ---------------------------------------------------------------------
+// Renderizado: 1. Pendientes
+// ---------------------------------------------------------------------
 function pintarPendientes() {
   const lista = document.getElementById('lista-pendientes');
   const vacio = document.getElementById('pendientes-vacio');
@@ -82,55 +177,284 @@ function pintarPendientes() {
 
   pendientes.forEach((s) => {
     const esVirtual = s.modalidad === 'Virtual';
+    const soyAsesor = s.mi_papel === 'Asesor';
     const tarjeta = document.createElement('div');
     tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+
     tarjeta.innerHTML = `
       <div class="space-y-1">
-        <h3 class="text-sm font-bold text-slate-900"><span data-campo="estudiante"></span> • <span data-campo="materia"></span></h3>
-        <p class="text-xs text-slate-600 capitalize-first">
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
+        <p class="text-xs text-slate-600">
           <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)} •
           <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${esVirtual ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
         </p>
         <p class="text-xs text-slate-500" data-campo="ubicacion"></p>
         <p class="text-xs text-amber-700 font-semibold">Responder antes de: ${fechaLimite(s.fecha, s.hora_inicio)}</p>
       </div>
-      <div class="flex gap-2 w-full md:w-auto">
-        <button data-accion="rechazar" class="flex-1 md:flex-none px-4 py-2.5 bg-white border border-rose-300 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-50 transition">Rechazar</button>
-        <button data-accion="aceptar" class="flex-1 md:flex-none px-5 py-2.5 bg-[#1B396A] text-white text-xs font-semibold rounded-lg hover:bg-[#13274A] transition shadow-sm">${esVirtual ? 'Aceptar y adjuntar enlace' : 'Aceptar'}</button>
-      </div>`;
+      <div class="flex gap-2 w-full md:w-auto" data-acciones></div>`;
 
-    // textContent para no inyectar HTML con datos de la BD
-    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
+    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor
+      ? s.estudiante
+      : `Asesor: ${s.asesor}`;
     tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
     const f = formatearFecha(s.fecha);
     tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+
     const ubic = tarjeta.querySelector('[data-campo="ubicacion"]');
     if (!esVirtual && s.ubicacion_presencial) ubic.textContent = `Ubicación: ${s.ubicacion_presencial}`;
     else ubic.remove();
 
-    tarjeta.querySelector('[data-accion="aceptar"]').onclick = () =>
-      esVirtual ? abrirModalEnlace(s) : pedirConfirmacion(
-        'Aceptar asesoría',
-        `¿Aceptar la asesoría presencial de ${s.estudiante}?`,
-        'Aceptar', 'bg-[#1B396A] hover:bg-[#13274A]',
-        (boton) => aceptarSolicitud(s.id_solicitud_asesoria, null, boton),
-      );
+    const zonaAcciones = tarjeta.querySelector('[data-acciones]');
+    if (soyAsesor) {
+      zonaAcciones.innerHTML = `
+        <button data-accion="rechazar" class="flex-1 md:flex-none px-4 py-2.5 bg-white border border-rose-300 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-50 transition">Rechazar</button>
+        <button data-accion="aceptar" class="flex-1 md:flex-none px-5 py-2.5 bg-[#1B396A] text-white text-xs font-semibold rounded-lg hover:bg-[#13274A] transition shadow-sm">${esVirtual ? 'Aceptar y adjuntar enlace' : 'Aceptar'}</button>`;
 
-    tarjeta.querySelector('[data-accion="rechazar"]').onclick = () => pedirConfirmacion(
-      'Rechazar solicitud',
-      `¿Rechazar la solicitud de ${s.estudiante}?`,
-      'Rechazar', 'bg-rose-600 hover:bg-rose-700',
-      (boton) => rechazarSolicitud(s.id_solicitud_asesoria, boton),
-    );
+      zonaAcciones.querySelector('[data-accion="aceptar"]').onclick = () =>
+        esVirtual ? abrirModalEnlace(s) : pedirConfirmacion(
+          'Aceptar asesoría',
+          `¿Aceptar la asesoría presencial de ${s.estudiante}?`,
+          'Aceptar', 'bg-[#1B396A] hover:bg-[#13274A]',
+          (boton) => aceptarSolicitud(s.id_solicitud_asesoria, null, boton),
+        );
+
+      zonaAcciones.querySelector('[data-accion="rechazar"]').onclick = () => pedirConfirmacion(
+        'Rechazar solicitud',
+        `¿Rechazar la solicitud de ${s.estudiante}?`,
+        'Rechazar', 'bg-rose-600 hover:bg-rose-700',
+        (boton) => rechazarSolicitud(s.id_solicitud_asesoria, boton),
+      );
+    } else {
+      zonaAcciones.innerHTML = '<span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Pendiente de respuesta</span>';
+    }
 
     lista.appendChild(tarjeta);
   });
 }
 
 // ---------------------------------------------------------------------
-// Llamada común a resolver_solicitud. Se usa db.rpc (como ejecutar) para
-// saber si hubo error aunque la función no devuelva datos.
-// Los mensajes de la BD se muestran tal cual.
+// Renderizado: 2. Por cerrar (CU-005 · puede_marcar = true)
+// ---------------------------------------------------------------------
+function pintarPorCerrar() {
+  const lista = document.getElementById('lista-por-cerrar');
+  const vacio = document.getElementById('por-cerrar-vacio');
+  lista.innerHTML = '';
+  vacio.classList.toggle('hidden', porCerrar.length > 0);
+
+  porCerrar.forEach((s) => {
+    const esVirtual = s.modalidad === 'Virtual';
+    const plazo = calcularTiempoRestanteCierre(s.fecha, s.hora_inicio);
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+    tarjeta.innerHTML = `
+      <div class="space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">Concluida · Por cerrar</span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${esVirtual ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">
+          <span data-campo="estudiante"></span> • <span data-campo="materia"></span>
+        </h3>
+        <p class="text-xs text-slate-600">
+          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)}
+        </p>
+        <p class="text-xs font-semibold ${plazo.urgente ? 'text-rose-700' : 'text-amber-700'} flex items-center gap-1.5">
+          <span>⏳</span>
+          <span data-campo="aviso-plazo"></span>
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
+        <button type="button" data-accion="no-realizada"
+                class="w-full sm:w-auto px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+          No realizada
+        </button>
+        <button type="button" data-accion="realizada"
+                class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+          Realizada
+        </button>
+      </div>`;
+
+    // textContent para evitar inyección HTML
+    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
+    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
+    const f = formatearFecha(s.fecha);
+    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+    tarjeta.querySelector('[data-campo="aviso-plazo"]').textContent = plazo.texto;
+
+    // Botón «Realizada» (verde)
+    tarjeta.querySelector('[data-accion="realizada"]').onclick = (e) => {
+      marcarResultado(s.id_solicitud_asesoria, true, e.currentTarget);
+    };
+
+    // Botón «No realizada» (gris) con confirmación reglamentaria
+    tarjeta.querySelector('[data-accion="no-realizada"]').onclick = () => {
+      pedirConfirmacion(
+        'Marcar como no realizada',
+        'Se registrará solo para estadística; no afecta a nadie.',
+        'Confirmar',
+        'bg-slate-600 hover:bg-slate-700',
+        (boton) => marcarResultado(s.id_solicitud_asesoria, false, boton),
+      );
+    };
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Renderizado: 3. Próximas (Aceptadas antes de terminar la hora: sin botones de cierre)
+// ---------------------------------------------------------------------
+function pintarProximas() {
+  const lista = document.getElementById('lista-proximas');
+  const vacio = document.getElementById('proximas-vacio');
+  lista.innerHTML = '';
+  vacio.classList.toggle('hidden', proximas.length > 0);
+
+  proximas.forEach((s) => {
+    const esVirtual = s.modalidad === 'Virtual';
+    const soyAsesor = s.mi_papel === 'Asesor';
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+    tarjeta.innerHTML = `
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Aceptada</span>
+          ${s.es_proxima ? '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">En menos de 24 h</span>' : ''}
+        </div>
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
+        <p class="text-xs text-slate-600">
+          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)} •
+          <span>${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
+        </p>
+        <p class="text-xs text-slate-500" data-campo="detalle-lugar"></p>
+      </div>
+      <div class="text-xs text-slate-500 font-medium">
+        ${soyAsesor ? 'Disponible para cerrar al terminar la hora' : 'Sesión confirmada'}
+      </div>`;
+
+    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor ? s.estudiante : s.asesor;
+    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
+    const f = formatearFecha(s.fecha);
+    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+
+    const detalleLugar = tarjeta.querySelector('[data-campo="detalle-lugar"]');
+    if (esVirtual && s.url_videollamada) {
+      detalleLugar.textContent = `Enlace: ${s.url_videollamada}`;
+    } else if (!esVirtual && s.ubicacion_presencial) {
+      detalleLugar.textContent = `Ubicación: ${s.ubicacion_presencial}`;
+    } else {
+      detalleLugar.remove();
+    }
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Renderizado: 4. Completadas / Historial
+// ---------------------------------------------------------------------
+function pintarCompletadas() {
+  const lista = document.getElementById('lista-completadas');
+  const vacio = document.getElementById('completadas-vacio');
+  lista.innerHTML = '';
+  vacio.classList.toggle('hidden', completadas.length > 0);
+
+  completadas.forEach((s) => {
+    const soyAsesor = s.mi_papel === 'Asesor';
+    const estadoLabel = s.estado_mostrado || s.estado;
+
+    const estilosEstado = {
+      Realizada: 'bg-emerald-100 text-emerald-800',
+      Evaluada: 'bg-emerald-100 text-emerald-800',
+      'Cerrada sin evaluar': 'bg-slate-100 text-slate-700',
+      'No realizada': 'bg-slate-200 text-slate-700',
+      'Sin registro': 'bg-amber-100 text-amber-800',
+      Rechazada: 'bg-rose-100 text-rose-800',
+      Cancelada: 'bg-rose-100 text-rose-800',
+      Caducada: 'bg-slate-100 text-slate-600',
+    };
+    const badgeClass = estilosEstado[estadoLabel] || 'bg-slate-100 text-slate-700';
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+    tarjeta.innerHTML = `
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded text-[11px] font-bold ${badgeClass}" data-campo="estado"></span>
+          <span class="text-[11px] text-slate-400 font-medium">${soyAsesor ? 'Rol: Asesor' : 'Rol: Estudiante'}</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
+        <p class="text-xs text-slate-600">
+          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)}
+        </p>
+      </div>
+      <div class="flex items-center gap-3" data-lado-derecho></div>`;
+
+    tarjeta.querySelector('[data-campo="estado"]').textContent = estadoLabel;
+    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor ? s.estudiante : s.asesor;
+    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
+    const f = formatearFecha(s.fecha);
+    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+
+    const derecho = tarjeta.querySelector('[data-lado-derecho]');
+    if (s.puede_calificar) {
+      // Habilitado por 7 días (168 h) cuando el asesor marca Realizada (HU-009)
+      const btnCalificar = document.createElement('button');
+      btnCalificar.type = 'button';
+      btnCalificar.textContent = '★ Calificar';
+      btnCalificar.className = 'px-4 py-2 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg shadow-sm transition';
+      btnCalificar.onclick = () => {
+        if (typeof window.abrirModalCalificar === 'function') {
+          window.abrirModalCalificar(s);
+        } else {
+          mostrarExito('Ventana de calificación activa (7 días).');
+        }
+      };
+      derecho.appendChild(btnCalificar);
+    } else if (s.puntuacion) {
+      const spanCalif = document.createElement('span');
+      spanCalif.className = 'text-xs font-bold text-amber-600';
+      spanCalif.textContent = `★ ${s.puntuacion} / 5`;
+      derecho.appendChild(spanCalif);
+    }
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+// ---------------------------------------------------------------------
+// CU-005 · marcarResultado(id, realizada): cierra la cita como Realizada o No realizada
+// ---------------------------------------------------------------------
+async function marcarResultado(id, realizada, boton) {
+  mostrarCargando(boton, true);
+  try {
+    // Llamada directa a db.rpc (igual que ejecutar) para validar error en funciones VOID
+    // y mostrar tal cual los mensajes de la base de datos:
+    // «La asesoría aún no termina.», «Solo se cierran asesorías aceptadas (<estado>).», «Esta asesoría no es tuya.»
+    const { error } = await db.rpc('marcar_resultado', {
+      p_id: id,
+      p_realizada: realizada,
+    });
+
+    cerrarConfirmacion();
+
+    if (error) {
+      mostrarError(error.message);
+      return false;
+    }
+
+    mostrarExito(realizada ? 'Asesoría marcada como realizada' : 'Asesoría marcada como no realizada');
+    await cargarMisCitas();
+    return true;
+  } finally {
+    mostrarCargando(boton, false);
+  }
+}
+
+// ---------------------------------------------------------------------
+// Llamada común a resolver_solicitud (T16)
 // ---------------------------------------------------------------------
 async function resolver(id, aceptar, url) {
   const { error } = await db.rpc('resolver_solicitud', {
@@ -151,7 +475,7 @@ async function aceptarSolicitud(id, url, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Asesoría aceptada');
-    await listarPendientesAsesor();
+    await cargarMisCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -165,7 +489,7 @@ async function rechazarSolicitud(id, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Solicitud rechazada');
-    await listarPendientesAsesor();
+    await cargarMisCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -204,7 +528,7 @@ function actualizarValidacionUrl() {
 }
 
 // ---------------------------------------------------------------------
-// Diálogo de confirmación reutilizable (aceptar presencial / rechazar)
+// Diálogo de confirmación reutilizable (aceptar presencial / rechazar / no realizada)
 // ---------------------------------------------------------------------
 function pedirConfirmacion(titulo, texto, textoBoton, colorBoton, accion) {
   document.getElementById('confirmar-titulo').textContent = titulo;
@@ -242,200 +566,5 @@ async function iniciarSolicitudes() {
     if (accionConfirmar) accionConfirmar(e.currentTarget);
   };
 
-  await listarPendientesAsesor();
+  await cargarMisCitas();
 }
-
-/* T15b. Requiere supabase.js, sesion.js y t15bSesionLista.
- * T15a: #grid-resultados, botones [data-id-franja], window.recargarBusqueda().
- * La reserva, el congelamiento y la notificación los hace la RPC, nunca el cliente.
- */
-(() => {
-  'use strict';
-  const EXITO = 'Solicitud enviada. El asesor tiene hasta 24 h antes de la cita para responder.';
-  const RESERVADO = 'Este horario ya fue reservado.';
-  const modal = document.getElementById('modal-solicitar');
-  let franja = null;
-  let enviando = false;
-  let version = 0;
-  const porId = id => document.getElementById(id);
-  const mensaje = error => error?.message || 'No fue posible conectar. Intenta nuevamente.';
-  const fecha = valor => String(valor || '').split('-').reverse().join('/');
-  const hora = valor => String(valor || '').slice(0, 5);
-
-  function detalle(destino, etiqueta, valor) {
-    const fila = document.createElement('div');
-    const titulo = document.createElement('dt');
-    titulo.className = 'font-semibold';
-    titulo.textContent = etiqueta;
-    const texto = document.createElement('dd');
-    texto.textContent = valor || '—';
-    fila.append(titulo, texto);
-    destino.append(fila);
-  }
-  async function recargar() {
-    try {
-      if (typeof window.recargarBusqueda === 'function') await window.recargarBusqueda();
-    } catch (_) {
-      mostrarError('No se pudo actualizar la búsqueda. Recarga la página.');
-    }
-  }
-  function errorModal(texto) {
-    porId('solicitud-error').textContent = texto;
-    porId('solicitud-error').hidden = false;
-  }
-  function cerrar() {
-    if (enviando) return;
-    version++;
-    franja = null;
-    modal.close();
-  }
-
-  window.solicitarAsesoria = async function solicitarAsesoria(idFranja) {
-    if (!modal || enviando) return;
-    const id = String(idFranja);
-    if (!/^[1-9]\d*$/.test(id)) {
-      mostrarError('El identificador del horario no es válido.');
-      return;
-    }
-    const turno = ++version;
-    try {
-      const usuario = await window.t15bSesionLista;
-      if (turno !== version || !usuario) return;
-      if (usuario.rol !== 'Estudiante') {
-        mostrarError('Solo los estudiantes pueden solicitar asesorías.');
-        return;
-      }
-      franja = null;
-      porId('solicitud-resumen').replaceChildren();
-      porId('solicitud-error').hidden = true;
-      porId('solicitud-aviso').hidden = true;
-      porId('solicitud-cargando').hidden = false;
-      porId('solicitud-confirmar').disabled = true;
-      if (!modal.open) modal.showModal();
-      const { data, error } = await db.from('v_franjas_disponibles')
-        .select('*').eq('id_disponibilidad', id).maybeSingle();
-      if (turno !== version) return;
-      if (error) throw error;
-      if (!data) {
-        cerrar();
-        mostrarError('Este horario ya no está disponible.');
-        await recargar();
-        return;
-      }
-      franja = data;
-      const resumen = porId('solicitud-resumen');
-      detalle(resumen, 'Asesor', data.asesor);
-      detalle(resumen, 'Materia', data.nombre_materia);
-      detalle(resumen, 'Fecha', fecha(data.fecha));
-      detalle(resumen, 'Hora (Pachuca)', hora(data.hora_inicio));
-      detalle(resumen, 'Modalidad', data.modalidad);
-      detalle(resumen, 'Ubicación', data.modalidad === 'Virtual' ? 'Sesión virtual' : data.ubicacion_presencial);
-      porId('solicitud-aviso').hidden = data.modalidad !== 'Virtual';
-      porId('solicitud-confirmar').disabled = false;
-    } catch (error) {
-      if (turno === version) {
-        if (modal.open) errorModal(mensaje(error));
-        else mostrarError(mensaje(error));
-      }
-    } finally {
-      if (turno === version) porId('solicitud-cargando').hidden = true;
-    }
-  };
-
-  async function confirmar() {
-    if (enviando || !franja) return;
-    enviando = true;
-    const boton = porId('solicitud-confirmar');
-    boton.disabled = true;
-    boton.textContent = 'Procesando…';
-    porId('solicitud-cancelar').disabled = true;
-    porId('solicitud-error').hidden = true;
-    modal.setAttribute('aria-busy', 'true');
-    let exito = false;
-    try {
-      const idSolicitud = await ejecutar('solicitar_asesoria', {
-        p_id_disponibilidad: franja.id_disponibilidad
-      }, { propagarError: true });
-      if (idSolicitud == null) throw new Error('No se recibió la confirmación. Revisa Mis solicitudes antes de volver a intentar.');
-      exito = true;
-      modal.close();
-      mostrarExito(EXITO);
-      // Una falla del almacenamiento no debe convertir una reserva exitosa en error.
-      try { sessionStorage.setItem('t15b-exito', EXITO); } catch (_) { /* opcional */ }
-      setTimeout(() => window.location.assign('solicitudes.html'), 1400);
-    } catch (error) {
-      if (mensaje(error) === RESERVADO) {
-        franja = null;
-        modal.close();
-        mostrarError(RESERVADO);
-        await recargar();
-      } else {
-        errorModal(mensaje(error));
-      }
-    } finally {
-      if (!exito) {
-        enviando = false;
-        boton.disabled = !franja;
-        boton.textContent = 'Confirmar solicitud';
-        porId('solicitud-cancelar').disabled = false;
-        modal.removeAttribute('aria-busy');
-      }
-    }
-  }
-  if (modal) {
-    porId('solicitud-confirmar').addEventListener('click', confirmar);
-    porId('solicitud-cancelar').addEventListener('click', cerrar);
-    modal.addEventListener('cancel', event => {
-      event.preventDefault();
-      cerrar();
-    });
-    porId('grid-resultados')?.addEventListener('click', event => {
-      const boton = event.target.closest('[data-id-franja]');
-      if (!boton || boton.disabled) return;
-      event.preventDefault();
-      window.solicitarAsesoria(boton.dataset.idFranja);
-    });
-  }
-
-  async function cargarMisCitas() {
-    const lista = porId('t15b-mis-citas');
-    if (!lista) return;
-    try {
-      if (!await window.t15bSesionLista) return;
-      const { data, error } = await db.from('v_mis_citas').select('*')
-        .eq('mi_papel', 'Estudiante')
-        .order('fecha_creacion', { ascending: false });
-      if (error) throw error;
-      lista.replaceChildren();
-      if (!data?.length) lista.textContent = 'Todavía no tienes solicitudes.';
-      for (const cita of data || []) {
-        const tarjeta = document.createElement('article');
-        tarjeta.className = 'bg-white border rounded-xl p-5 shadow-sm';
-        const titulo = document.createElement('h2');
-        titulo.className = 'font-bold text-lg';
-        titulo.textContent = cita.nombre_materia;
-        tarjeta.append(titulo);
-        const datos = document.createElement('dl');
-        datos.className = 'grid gap-3 sm:grid-cols-3 text-sm mt-3';
-        detalle(datos, 'Solicitud', String(cita.id_solicitud_asesoria));
-        detalle(datos, 'Estado', cita.estado_mostrado || cita.estado);
-        detalle(datos, 'Asesor', cita.asesor);
-        detalle(datos, 'Estudiante', cita.estudiante);
-        detalle(datos, 'Fecha y hora (Pachuca)', `${fecha(cita.fecha)} ${hora(cita.hora_inicio)}`);
-        detalle(datos, 'Modalidad', cita.modalidad);
-        tarjeta.append(datos);
-        lista.append(tarjeta);
-      }
-      try {
-        if (sessionStorage.getItem('t15b-exito') === EXITO) {
-          sessionStorage.removeItem('t15b-exito');
-          mostrarExito(EXITO);
-        }
-      } catch (_) { /* opcional */ }
-    } catch (error) {
-      lista.textContent = 'No se pudieron cargar las solicitudes. Recarga para intentar otra vez.';
-      mostrarError(mensaje(error));
-    }
-  }
-  window.iniciarMisSolicitudesEstudiante = cargarMisCitas;
-})();
