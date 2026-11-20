@@ -14,5 +14,5 @@
 | Estudiante: Busca, solicita cita | Celular (Datos móviles) | ✅ | Búsqueda de horarios funcionales con datos móviles. |
 | Asesor: Acepta cita; Estudiante: Ve la cita | Computadora | ✅ | Visualización de citas confirmadas en panel y solicitudes. |
 | Asesor: Acepta cita; Estudiante: Ve la cita | Celular (Datos móviles) | ✅ | Consulta de citas confirmadas correcta en móvil. |
-| Campana de avisos y reporte del coordinador | Computadora | ❌ | Consola limpia y pestaña Network sin errores 404. |
-| Campana de avisos y reporte del coordinador | Celular (Datos móviles) | ❌ | Navegación estable sin errores de red. |
+| Campana de avisos y reporte del coordinador | Computadora | ✅ | Consola limpia y pestaña Network sin errores 404. |
+| Campana de avisos y reporte del coordinador | Celular (Datos móviles) | ✅ | Navegación estable sin errores de red. |
