@@ -424,3 +424,62 @@ WHERE NOT EXISTS (
 );
 
 COMMIT;
+
+
+-- ESC-004 (T17 · TC-20): cita Aceptada a menos de 48 h.
+-- Sirve para comprobar que «Cancelar» aparece deshabilitado
+-- con el aviso de 48 h para el estudiante y el asesor.
+-- Crea un horario de profesor1 para mañana a las 07:00
+-- (fecha de Ciudad de México) y una solicitud Aceptada de
+-- estudiante2. Ejecutar el mismo día de la prueba.
+BEGIN;
+
+INSERT INTO public.franja_disponibilidad (
+  id_asesor,
+  id_materia,
+  fecha,
+  hora_inicio,
+  modalidad,
+  ubicacion_presencial
+)
+SELECT
+  u.id_usuario,
+  m.id_materia,
+  (now() AT TIME ZONE 'America/Mexico_City')::DATE + 1,
+  TIME '07:00',
+  'Presencial',
+  'ESC-004 · Aula 1'
+FROM public.usuario AS u
+JOIN public.asesor_materia AS a
+  ON a.id_asesor = u.id_usuario
+  AND a.estado_autorizacion = 'Aprobada'
+JOIN public.materia AS m
+  ON m.id_materia = a.id_materia
+  AND m.nombre_materia = 'Bases de Datos'
+WHERE u.correo_institucional = 'profesor1@pachuca.tecnm.mx'
+ON CONFLICT (id_asesor, fecha, hora_inicio) DO NOTHING;
+
+INSERT INTO public.solicitud_asesoria (
+  id_estudiante,
+  id_disponibilidad,
+  estado
+)
+SELECT
+  est.id_usuario,
+  f.id_disponibilidad,
+  'Aceptada'
+FROM public.franja_disponibilidad AS f
+JOIN public.usuario AS ase
+  ON ase.id_usuario = f.id_asesor
+  AND ase.correo_institucional = 'profesor1@pachuca.tecnm.mx'
+JOIN public.usuario AS est
+  ON est.correo_institucional = 'estudiante2@pachuca.tecnm.mx'
+WHERE f.fecha = (now() AT TIME ZONE 'America/Mexico_City')::DATE + 1
+  AND f.hora_inicio = TIME '07:00'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.solicitud_asesoria AS s
+    WHERE s.id_disponibilidad = f.id_disponibilidad
+      AND s.estado IN ('Pendiente', 'Aceptada')
+  );
+
+COMMIT;
