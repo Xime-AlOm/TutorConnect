@@ -6,7 +6,6 @@
   <title>TutorConnect - Mis Solicitudes</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/estilos.css">
-  <script src="js/solicitudes.js" defer></script>
 </head>
 <body class="bg-[#F8FAFC] flex min-h-screen w-full m-0 p-0 overflow-x-hidden flex-col">
 
@@ -44,20 +43,26 @@
     </div>
   </header>
 
-  <!-- Contenido principal -->
+  <!-- Contenido principal a todo lo ancho (estilo QA) -->
   <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1">
     <div id="zona-error"></div>
 
     <h1 class="text-2xl font-bold text-slate-900 mb-6">Gestor de solicitudes y citas</h1>
 
-    <!-- ===== Mis citas del estudiante (T17 · HU-007) ===== -->
+    <!-- ===== PANEL 1: Mis citas del estudiante (T15b · T17 · HU-007) ===== -->
     <section id="t15b-panel-estudiante" hidden class="mb-10">
-      <h2 class="text-xl font-semibold">Mis citas</h2>
+      <h2 class="text-xl font-semibold text-slate-900">Mis citas</h2>
 
-      <div class="flex space-x-6 mt-4 mb-6 border-b border-slate-200" data-grupo="est">
-        <button type="button" data-pestana="est-pendientes" class="pb-3 text-sm">Pendientes (<span id="contador-est-pendientes">0</span>)</button>
-        <button type="button" data-pestana="est-proximas" class="pb-3 text-sm">Próximas (<span id="contador-est-proximas">0</span>)</button>
-        <button type="button" data-pestana="est-historial" class="pb-3 text-sm">Historial (<span id="contador-est-historial">0</span>)</button>
+      <div class="flex flex-wrap gap-6 mt-4 mb-6 border-b border-slate-200" data-grupo="est">
+        <button type="button" data-pestana="est-pendientes" class="pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition">
+          Pendientes (<span id="contador-est-pendientes">0</span>)
+        </button>
+        <button type="button" data-pestana="est-proximas" class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
+          Próximas (<span id="contador-est-proximas">0</span>)
+        </button>
+        <button type="button" data-pestana="est-historial" class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
+          Historial (<span id="contador-est-historial">0</span>)
+        </button>
       </div>
 
       <div id="est-pendientes" data-panel="est" class="space-y-4"></div>
@@ -71,83 +76,69 @@
       </div>
     </section>
 
+    <!-- ===== PANEL 2: Solicitudes y citas como asesor (T16 · T17 · T20) ===== -->
     <section id="t16-panel-asesor" hidden>
-  <main class="w-full px-4 sm:px-6 lg:px-12 py-8 flex-1 max-w-5xl mx-auto">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-slate-900">Solicitudes recibidas como asesor</h2>
+        <p class="text-sm text-slate-500 mt-1">Administra tus solicitudes, cierres de sesión e historial de asesorías</p>
 
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold">Solicitudes recibidas como asesor</h2>
-
-      <!-- Pestañas del asesor: Pendientes (T16) y Próximas con Cancelar (T17) -->
-      <div class="flex space-x-6 mt-4 border-b border-slate-200" data-grupo="asesor">
-        <button type="button" data-pestana="seccion-pendientes" class="pb-3 text-sm">
-      <h1 class="text-2xl font-bold text-slate-900">Gestor de solicitudes y citas</h1>
-      <p class="text-sm text-slate-500 mt-1">Administra tus solicitudes, cierres de sesión e historial de asesorías</p>
-
-      <!-- Pestañas de navegación -->
-      <div class="flex flex-wrap gap-6 mt-5 border-b border-slate-200">
-        <button type="button" id="tab-pendientes" onclick="cambiarTab('pendientes')"
-                class="pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition">
-          Pendientes (<span id="contador-pendientes">0</span>)
-        </button>
-        <button type="button" data-pestana="seccion-proximas-asesor" class="pb-3 text-sm">
-          Próximas (<span id="contador-proximas-asesor">0</span>)
-        </button>
-        <button type="button" id="tab-por-cerrar" data-asesor onclick="cambiarTab('por-cerrar')"
-                class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
-          Por cerrar (<span id="contador-por-cerrar">0</span>)
-        </button>
-        <button type="button" id="tab-proximas" onclick="cambiarTab('proximas')"
-                class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
-          Próximas (<span id="contador-proximas">0</span>)
-        </button>
-        <button type="button" id="tab-completadas" onclick="cambiarTab('completadas')"
-                class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
-          Completadas (<span id="contador-completadas">0</span>)
-        </button>
+        <!-- Pestañas del asesor unificadas con el sistema data-grupo de QA -->
+        <div class="flex flex-wrap gap-6 mt-4 border-b border-slate-200" data-grupo="asesor">
+          <button type="button" id="tab-pendientes" data-pestana="seccion-pendientes"
+                  class="pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition">
+            Pendientes (<span id="contador-pendientes">0</span>)
+          </button>
+          <button type="button" id="tab-por-cerrar" data-asesor data-pestana="seccion-por-cerrar"
+                  class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
+            Por cerrar (<span id="contador-por-cerrar">0</span>)
+          </button>
+          <button type="button" id="tab-proximas" data-pestana="seccion-proximas-asesor"
+                  class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
+            Próximas (<span id="contador-proximas-asesor">0</span>)
+          </button>
+          <button type="button" id="tab-completadas" data-pestana="seccion-completadas"
+                  class="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition">
+            Completadas (<span id="contador-completadas">0</span>)
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- SECCIÓN 1: PENDIENTES -->
-    <section id="seccion-pendientes" data-panel="asesor" class="space-y-4">
-      <div id="lista-pendientes" class="space-y-4"></div>
-      <div id="pendientes-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
-        <p class="text-sm font-semibold text-slate-700">No tienes solicitudes pendientes</p>
-        <p class="text-xs text-slate-500 mt-1">Las solicitudes nuevas aparecerán aquí para su revisión.</p>
-      </div>
+      <!-- SECCIÓN 1: PENDIENTES DEL ASESOR (T16) -->
+      <section id="seccion-pendientes" data-panel="asesor" class="space-y-4">
+        <div id="lista-pendientes" class="space-y-4"></div>
+        <div id="pendientes-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
+          <p class="text-sm font-semibold text-slate-700">No tienes solicitudes pendientes</p>
+          <p class="text-xs text-slate-500 mt-1">Las solicitudes nuevas aparecerán aquí para su revisión.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 2: POR CERRAR (T20 · CU-005 · puede_marcar = true) -->
+      <section id="seccion-por-cerrar" data-panel="asesor" class="hidden space-y-4">
+        <div id="lista-por-cerrar" class="space-y-4"></div>
+        <div id="por-cerrar-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
+          <p class="text-sm font-semibold text-slate-700">No tienes asesorías pendientes por cerrar</p>
+          <p class="text-xs text-slate-500 mt-1">Cuando termine la hora de una asesoría aceptada, aparecerá aquí durante 48 horas para registrar su resultado.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 3: PRÓXIMAS DEL ASESOR (T17 · HU-007) -->
+      <section id="seccion-proximas-asesor" data-panel="asesor" class="hidden space-y-4">
+        <div id="lista-proximas-asesor" class="space-y-4"></div>
+        <div id="proximas-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
+          <p class="text-sm font-semibold text-slate-700">No tienes asesorías próximas confirmadas</p>
+          <p class="text-xs text-slate-500 mt-1">Aquí verás tus citas aceptadas antes de que concluya su horario.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 4: COMPLETADAS / HISTORIAL DEL ASESOR (T20) -->
+      <section id="seccion-completadas" data-panel="asesor" class="hidden space-y-4">
+        <div id="lista-completadas" class="space-y-4"></div>
+        <div id="completadas-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
+          <p class="text-sm font-semibold text-slate-700">Aún no tienes asesorías concluidas</p>
+          <p class="text-xs text-slate-500 mt-1">Las sesiones marcadas como realizadas, no realizadas o cerradas aparecerán en este historial.</p>
+        </div>
+      </section>
     </section>
-
-    <!-- SECCIÓN 2: POR CERRAR (Asesor: puede_marcar = true) -->
-    <section id="seccion-por-cerrar" class="hidden space-y-4">
-      <div id="lista-por-cerrar" class="space-y-4"></div>
-      <div id="por-cerrar-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
-        <p class="text-sm font-semibold text-slate-700">No tienes asesorías pendientes por cerrar</p>
-        <p class="text-xs text-slate-500 mt-1">Cuando termine la hora de una asesoría aceptada, aparecerá aquí durante 48 horas para registrar su resultado.</p>
-      </div>
-    </section>
-
-    <!-- SECCIÓN 3: PRÓXIMAS / EN CURSO -->
-    <section id="seccion-proximas" class="hidden space-y-4">
-      <div id="lista-proximas" class="space-y-4"></div>
-      <div id="proximas-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
-        <p class="text-sm font-semibold text-slate-700">No tienes asesorías próximas confirmadas</p>
-        <p class="text-xs text-slate-500 mt-1">Aquí verás tus citas aceptadas antes de que concluya su horario.</p>
-      </div>
-    </section>
-
-    <!-- ===== Pestaña Próximas del asesor (T17 · HU-007) ===== -->
-    <section id="seccion-proximas-asesor" data-panel="asesor" class="hidden">
-      <div id="lista-proximas-asesor" class="space-y-4"></div>
-    </section>
-
-    <!-- SECCIÓN 4: COMPLETADAS / HISTORIAL -->
-    <section id="seccion-completadas" class="hidden space-y-4">
-      <div id="lista-completadas" class="space-y-4"></div>
-      <div id="completadas-vacio" class="hidden bg-white p-10 rounded-xl border border-slate-200 text-center">
-        <p class="text-sm font-semibold text-slate-700">Aún no tienes asesorías concluidas</p>
-        <p class="text-xs text-slate-500 mt-1">Las sesiones marcadas como realizadas, no realizadas o cerradas aparecerán en este historial.</p>
-      </div>
-    </section>
-
   </main>
 
   <!-- Modal FORM-002: Confirmar enlace de videollamada (Virtual) -->
@@ -172,7 +163,7 @@
     </div>
   </div>
 
-  <!-- Modal genérico de confirmación (Rechazar / Aceptar presencial / Marcar No realizada) -->
+  <!-- Modal genérico de confirmación (Rechazar / Aceptar presencial / Cancelar / Marcar No realizada) -->
   <div id="modal-confirmar" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl modal-anim">
       <h2 id="confirmar-titulo" class="text-lg font-bold text-slate-900 mb-2">Confirmar acción</h2>
@@ -185,42 +176,44 @@
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/sesion.js"></script>
-<script src="js/solicitudes.js"></script>
-<script>
-  // Una sola sesión compartida por T15b y T16. Un tutor puede usar ambos paneles.
-  window.t15bSesionLista = iniciarPaginaProtegida();
-  window.t15bSesionLista.then(async (usuario) => {
-    if (!usuario) return;
-    if (usuario.rol === 'Estudiante') {
-      document.getElementById('t15b-panel-estudiante').hidden = false;
-      await iniciarMisCitasEstudiante(); // T17 (reemplaza la lista simple de T15b)
-    }
-    if (usuario.rol === 'Profesor' || await esAsesorAprobado()) {
-      document.getElementById('t16-panel-asesor').hidden = false;
-      await iniciarSolicitudes();
-    }
-  }).catch((error) => mostrarError(error.message || 'No se pudieron cargar las solicitudes.'));
-</script>
+  <!-- Scripts cargados una sola vez en orden -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
   <script src="js/sesion.js"></script>
+  <script src="js/solicitudes.js"></script>
   <script>
-    iniciarPaginaProtegida().then((usuario) => {
-      if (usuario) {
-        const iniciales = usuario.nombre_completo
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase();
-        document.getElementById('avatar-iniciales').textContent = iniciales;
-        document.getElementById('avatar-iniciales').title = usuario.nombre_completo;
-        iniciarSolicitudes();
+    // Una sola sesión compartida por estudiante (T15b/T17) y asesor (T16/T17/T20).
+    // Un tutor par puede visualizar ambos paneles.
+    window.t15bSesionLista = iniciarPaginaProtegida();
+    window.t15bSesionLista.then(async (usuario) => {
+      if (!usuario) return;
+
+      const iniciales = usuario.nombre_completo
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+      const avatar = document.getElementById('avatar-iniciales');
+      if (avatar) {
+        avatar.textContent = iniciales;
+        avatar.title = usuario.nombre_completo;
       }
-    });
+
+      if (usuario.rol === 'Estudiante') {
+        document.getElementById('t15b-panel-estudiante').hidden = false;
+        if (typeof iniciarMisCitasEstudiante === 'function') {
+          await iniciarMisCitasEstudiante();
+        }
+      }
+
+      if (usuario.rol === 'Profesor' || await esAsesorAprobado()) {
+        document.getElementById('t16-panel-asesor').hidden = false;
+        if (typeof iniciarSolicitudes === 'function') {
+          await iniciarSolicitudes();
+        }
+      }
+    }).catch((error) => mostrarError(error.message || 'No se pudieron cargar las solicitudes.'));
   </script>
 </body>
 </html>

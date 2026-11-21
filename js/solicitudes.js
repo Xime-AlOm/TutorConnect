@@ -6,12 +6,9 @@
 // Requiere: js/supabase.js (db, mostrarError, mostrarExito, mostrarCargando)
 // =====================================================================
 
-let todasLasCitas = [];       // registros de v_mis_citas
 let pendientes = [];          // solicitudes pendientes del asesor
 let porCerrar = [];           // citas aceptadas del asesor con puede_marcar = true
-let proximas = [];            // citas aceptadas vigentes (aún no terminan)
-let completadas = [];         // citas concluidas (historial)
-let tabActiva = 'pendientes';
+let completadas = [];         // citas concluidas del asesor (historial)
 let solicitudActual = null;   // solicitud que se está aceptando/rechazando
 let accionConfirmar = null;   // función a ejecutar al confirmar el diálogo
 
@@ -83,32 +80,9 @@ function validarUrl(url) {
 }
 
 // ---------------------------------------------------------------------
-// Control de pestañas en SCR-005
+// Carga de citas del Asesor: Pendientes (T16), Por cerrar (T20) y Completadas (T20)
 // ---------------------------------------------------------------------
-function cambiarTab(nombre) {
-  tabActiva = nombre;
-  const tabs = ['pendientes', 'por-cerrar', 'proximas', 'completadas'];
-
-  tabs.forEach((t) => {
-    const btn = document.getElementById(`tab-${t}`);
-    const sec = document.getElementById(`seccion-${t}`);
-    const activo = t === nombre;
-
-    if (btn) {
-      btn.className = activo
-        ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition'
-        : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition';
-    }
-    if (sec) {
-      sec.classList.toggle('hidden', !activo);
-    }
-  });
-}
-
-// ---------------------------------------------------------------------
-// Carga general de v_mis_citas y distribución por sección
-// ---------------------------------------------------------------------
-async function cargarMisCitas() {
+async function cargarCitasAsesor() {
   const listaPend = document.getElementById('lista-pendientes');
   const listaCerrar = document.getElementById('lista-por-cerrar');
   const skeleton = '<div class="h-24 rounded-xl bg-slate-100 animate-pulse"></div>'.repeat(2);
@@ -119,6 +93,7 @@ async function cargarMisCitas() {
   const { data, error } = await db
     .from('v_mis_citas')
     .select('*')
+    .eq('mi_papel', 'Asesor')
     .order('fecha', { ascending: false })
     .order('hora_inicio', { ascending: false });
 
@@ -129,62 +104,59 @@ async function cargarMisCitas() {
     return;
   }
 
-  todasLasCitas = data || [];
+  const citasAsesor = data || [];
 
-  // 1. Pendientes (del asesor para T16; también pendientes del estudiante si entra)
-  pendientes = todasLasCitas
+  // 1. Pendientes por aceptar/rechazar (T16)
+  pendientes = citasAsesor
     .filter((s) => s.estado === 'Pendiente')
     .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
 
-  // 2. Por cerrar: estado = 'Aceptada', usuario es asesor y now() >= fin (puede_marcar = true)
-  porCerrar = todasLasCitas
+  // 2. Por cerrar: estado = 'Aceptada', usuario es asesor y now() >= fin (puede_marcar = true) (T20)
+  porCerrar = citasAsesor
     .filter((s) => s.puede_marcar === true)
     .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
 
-  // 3. Próximas / en curso: Aceptadas donde aún no termina la hora (puede_marcar = false)
-  proximas = todasLasCitas
-    .filter((s) => s.estado === 'Aceptada' && !s.puede_marcar)
-    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
-
-  // 4. Completadas / Historial: estados cerrados
+  // 3. Completadas / Historial del asesor (T20)
   const estadosFinales = ['Realizada', 'No realizada', 'Sin registro', 'Rechazada', 'Cancelada', 'Caducada'];
-  completadas = todasLasCitas.filter((s) => estadosFinales.includes(s.estado));
+  completadas = citasAsesor.filter((s) => estadosFinales.includes(s.estado));
 
-  // Actualizar contadores
-  document.getElementById('contador-pendientes').textContent = pendientes.length;
-  document.getElementById('contador-por-cerrar').textContent = porCerrar.length;
-  document.getElementById('contador-proximas').textContent = proximas.length;
-  document.getElementById('contador-completadas').textContent = completadas.length;
+  // Actualizar contadores de pestañas
+  const cPend = document.getElementById('contador-pendientes');
+  const cCerrar = document.getElementById('contador-por-cerrar');
+  const cComp = document.getElementById('contador-completadas');
+  if (cPend) cPend.textContent = pendientes.length;
+  if (cCerrar) cCerrar.textContent = porCerrar.length;
+  if (cComp) cComp.textContent = completadas.length;
 
   pintarPendientes();
   pintarPorCerrar();
-  pintarProximas();
   pintarCompletadas();
 }
 
 // Alias compatible con llamadas previas de T16
 async function listarPendientesAsesor() {
-  await cargarMisCitas();
+  await cargarCitasAsesor();
 }
 
 // ---------------------------------------------------------------------
-// Renderizado: 1. Pendientes
+// Renderizado: 1. Pendientes del asesor (T16)
 // ---------------------------------------------------------------------
 function pintarPendientes() {
   const lista = document.getElementById('lista-pendientes');
   const vacio = document.getElementById('pendientes-vacio');
+  if (!lista) return;
+
   lista.innerHTML = '';
-  vacio.classList.toggle('hidden', pendientes.length > 0);
+  if (vacio) vacio.classList.toggle('hidden', pendientes.length > 0);
 
   pendientes.forEach((s) => {
     const esVirtual = s.modalidad === 'Virtual';
-    const soyAsesor = s.mi_papel === 'Asesor';
     const tarjeta = document.createElement('div');
     tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
 
     tarjeta.innerHTML = `
       <div class="space-y-1">
-        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="estudiante"></span> • <span data-campo="materia"></span></h3>
         <p class="text-xs text-slate-600">
           <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)} •
           <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${esVirtual ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
@@ -192,11 +164,12 @@ function pintarPendientes() {
         <p class="text-xs text-slate-500" data-campo="ubicacion"></p>
         <p class="text-xs text-amber-700 font-semibold">Responder antes de: ${fechaLimite(s.fecha, s.hora_inicio)}</p>
       </div>
-      <div class="flex gap-2 w-full md:w-auto" data-acciones></div>`;
+      <div class="flex gap-2 w-full md:w-auto">
+        <button data-accion="rechazar" class="flex-1 md:flex-none px-4 py-2.5 bg-white border border-rose-300 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-50 transition">Rechazar</button>
+        <button data-accion="aceptar" class="flex-1 md:flex-none px-5 py-2.5 bg-[#1B396A] text-white text-xs font-semibold rounded-lg hover:bg-[#13274A] transition shadow-sm">${esVirtual ? 'Aceptar y adjuntar enlace' : 'Aceptar'}</button>
+      </div>`;
 
-    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor
-      ? s.estudiante
-      : `Asesor: ${s.asesor}`;
+    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
     tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
     const f = formatearFecha(s.fecha);
     tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
@@ -205,42 +178,35 @@ function pintarPendientes() {
     if (!esVirtual && s.ubicacion_presencial) ubic.textContent = `Ubicación: ${s.ubicacion_presencial}`;
     else ubic.remove();
 
-    const zonaAcciones = tarjeta.querySelector('[data-acciones]');
-    if (soyAsesor) {
-      zonaAcciones.innerHTML = `
-        <button data-accion="rechazar" class="flex-1 md:flex-none px-4 py-2.5 bg-white border border-rose-300 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-50 transition">Rechazar</button>
-        <button data-accion="aceptar" class="flex-1 md:flex-none px-5 py-2.5 bg-[#1B396A] text-white text-xs font-semibold rounded-lg hover:bg-[#13274A] transition shadow-sm">${esVirtual ? 'Aceptar y adjuntar enlace' : 'Aceptar'}</button>`;
-
-      zonaAcciones.querySelector('[data-accion="aceptar"]').onclick = () =>
-        esVirtual ? abrirModalEnlace(s) : pedirConfirmacion(
-          'Aceptar asesoría',
-          `¿Aceptar la asesoría presencial de ${s.estudiante}?`,
-          'Aceptar', 'bg-[#1B396A] hover:bg-[#13274A]',
-          (boton) => aceptarSolicitud(s.id_solicitud_asesoria, null, boton),
-        );
-
-      zonaAcciones.querySelector('[data-accion="rechazar"]').onclick = () => pedirConfirmacion(
-        'Rechazar solicitud',
-        `¿Rechazar la solicitud de ${s.estudiante}?`,
-        'Rechazar', 'bg-rose-600 hover:bg-rose-700',
-        (boton) => rechazarSolicitud(s.id_solicitud_asesoria, boton),
+    tarjeta.querySelector('[data-accion="aceptar"]').onclick = () =>
+      esVirtual ? abrirModalEnlace(s) : pedirConfirmacion(
+        'Aceptar asesoría',
+        `¿Aceptar la asesoría presencial de ${s.estudiante}?`,
+        'Aceptar', 'bg-[#1B396A] hover:bg-[#13274A]',
+        (boton) => aceptarSolicitud(s.id_solicitud_asesoria, null, boton),
       );
-    } else {
-      zonaAcciones.innerHTML = '<span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Pendiente de respuesta</span>';
-    }
+
+    tarjeta.querySelector('[data-accion="rechazar"]').onclick = () => pedirConfirmacion(
+      'Rechazar solicitud',
+      `¿Rechazar la solicitud de ${s.estudiante}?`,
+      'Rechazar', 'bg-rose-600 hover:bg-rose-700',
+      (boton) => rechazarSolicitud(s.id_solicitud_asesoria, boton),
+    );
 
     lista.appendChild(tarjeta);
   });
 }
 
 // ---------------------------------------------------------------------
-// Renderizado: 2. Por cerrar (CU-005 · puede_marcar = true)
+// Renderizado: 2. Por cerrar (T20 · CU-005 · puede_marcar = true)
 // ---------------------------------------------------------------------
 function pintarPorCerrar() {
   const lista = document.getElementById('lista-por-cerrar');
   const vacio = document.getElementById('por-cerrar-vacio');
+  if (!lista) return;
+
   lista.innerHTML = '';
-  vacio.classList.toggle('hidden', porCerrar.length > 0);
+  if (vacio) vacio.classList.toggle('hidden', porCerrar.length > 0);
 
   porCerrar.forEach((s) => {
     const esVirtual = s.modalidad === 'Virtual';
@@ -304,89 +270,28 @@ function pintarPorCerrar() {
 }
 
 // ---------------------------------------------------------------------
-// Renderizado: 3. Próximas (Aceptadas antes de terminar la hora: sin botones de cierre)
-// ---------------------------------------------------------------------
-function pintarProximas() {
-  const lista = document.getElementById('lista-proximas');
-  const vacio = document.getElementById('proximas-vacio');
-  lista.innerHTML = '';
-  vacio.classList.toggle('hidden', proximas.length > 0);
-
-  proximas.forEach((s) => {
-    const esVirtual = s.modalidad === 'Virtual';
-    const soyAsesor = s.mi_papel === 'Asesor';
-
-    const tarjeta = document.createElement('div');
-    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
-    tarjeta.innerHTML = `
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Aceptada</span>
-          ${s.es_proxima ? '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">En menos de 24 h</span>' : ''}
-        </div>
-        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
-        <p class="text-xs text-slate-600">
-          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)} •
-          <span>${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
-        </p>
-        <p class="text-xs text-slate-500" data-campo="detalle-lugar"></p>
-      </div>
-      <div class="text-xs text-slate-500 font-medium">
-        ${soyAsesor ? 'Disponible para cerrar al terminar la hora' : 'Sesión confirmada'}
-      </div>`;
-
-    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor ? s.estudiante : s.asesor;
-    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
-    const f = formatearFecha(s.fecha);
-    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
-
-    const detalleLugar = tarjeta.querySelector('[data-campo="detalle-lugar"]');
-    if (esVirtual && s.url_videollamada) {
-      detalleLugar.textContent = `Enlace: ${s.url_videollamada}`;
-    } else if (!esVirtual && s.ubicacion_presencial) {
-      detalleLugar.textContent = `Ubicación: ${s.ubicacion_presencial}`;
-    } else {
-      detalleLugar.remove();
-    }
-
-    lista.appendChild(tarjeta);
-  });
-}
-
-// ---------------------------------------------------------------------
-// Renderizado: 4. Completadas / Historial
+// Renderizado: 3. Completadas / Historial del asesor (T20)
 // ---------------------------------------------------------------------
 function pintarCompletadas() {
   const lista = document.getElementById('lista-completadas');
   const vacio = document.getElementById('completadas-vacio');
+  if (!lista) return;
+
   lista.innerHTML = '';
-  vacio.classList.toggle('hidden', completadas.length > 0);
+  if (vacio) vacio.classList.toggle('hidden', completadas.length > 0);
 
   completadas.forEach((s) => {
-    const soyAsesor = s.mi_papel === 'Asesor';
     const estadoLabel = s.estado_mostrado || s.estado;
-
-    const estilosEstado = {
-      Realizada: 'bg-emerald-100 text-emerald-800',
-      Evaluada: 'bg-emerald-100 text-emerald-800',
-      'Cerrada sin evaluar': 'bg-slate-100 text-slate-700',
-      'No realizada': 'bg-slate-200 text-slate-700',
-      'Sin registro': 'bg-amber-100 text-amber-800',
-      Rechazada: 'bg-rose-100 text-rose-800',
-      Cancelada: 'bg-rose-100 text-rose-800',
-      Caducada: 'bg-slate-100 text-slate-600',
-    };
-    const badgeClass = estilosEstado[estadoLabel] || 'bg-slate-100 text-slate-700';
+    const badgeClass = COLORES_ESTADO[estadoLabel] || COLORES_ESTADO[s.estado] || 'bg-slate-100 text-slate-700';
 
     const tarjeta = document.createElement('div');
     tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
     tarjeta.innerHTML = `
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-0.5 rounded text-[11px] font-bold ${badgeClass}" data-campo="estado"></span>
-          <span class="text-[11px] text-slate-400 font-medium">${soyAsesor ? 'Rol: Asesor' : 'Rol: Estudiante'}</span>
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${badgeClass}" data-campo="estado"></span>
         </div>
-        <h3 class="text-sm font-bold text-slate-900"><span data-campo="contraparte"></span> • <span data-campo="materia"></span></h3>
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="estudiante"></span> • <span data-campo="materia"></span></h3>
         <p class="text-xs text-slate-600">
           <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)}
         </p>
@@ -394,27 +299,13 @@ function pintarCompletadas() {
       <div class="flex items-center gap-3" data-lado-derecho></div>`;
 
     tarjeta.querySelector('[data-campo="estado"]').textContent = estadoLabel;
-    tarjeta.querySelector('[data-campo="contraparte"]').textContent = soyAsesor ? s.estudiante : s.asesor;
+    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
     tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
     const f = formatearFecha(s.fecha);
     tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
 
     const derecho = tarjeta.querySelector('[data-lado-derecho]');
-    if (s.puede_calificar) {
-      // Habilitado por 7 días (168 h) cuando el asesor marca Realizada (HU-009)
-      const btnCalificar = document.createElement('button');
-      btnCalificar.type = 'button';
-      btnCalificar.textContent = '★ Calificar';
-      btnCalificar.className = 'px-4 py-2 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg shadow-sm transition';
-      btnCalificar.onclick = () => {
-        if (typeof window.abrirModalCalificar === 'function') {
-          window.abrirModalCalificar(s);
-        } else {
-          mostrarExito('Ventana de calificación activa (7 días).');
-        }
-      };
-      derecho.appendChild(btnCalificar);
-    } else if (s.puntuacion) {
+    if (s.puntuacion) {
       const spanCalif = document.createElement('span');
       spanCalif.className = 'text-xs font-bold text-amber-600';
       spanCalif.textContent = `★ ${s.puntuacion} / 5`;
@@ -447,7 +338,7 @@ async function marcarResultado(id, realizada, boton) {
     }
 
     mostrarExito(realizada ? 'Asesoría marcada como realizada' : 'Asesoría marcada como no realizada');
-    await cargarMisCitas();
+    await recargarCitas();
     return true;
   } finally {
     mostrarCargando(boton, false);
@@ -476,7 +367,7 @@ async function aceptarSolicitud(id, url, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Asesoría aceptada');
-    await cargarMisCitas();
+    await recargarCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -490,7 +381,7 @@ async function rechazarSolicitud(id, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Solicitud rechazada');
-    await cargarMisCitas();
+    await recargarCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -529,7 +420,7 @@ function actualizarValidacionUrl() {
 }
 
 // ---------------------------------------------------------------------
-// Diálogo de confirmación reutilizable (aceptar presencial / rechazar / no realizada)
+// Diálogo de confirmación reutilizable (aceptar presencial / rechazar / cancelar / no realizada)
 // ---------------------------------------------------------------------
 function pedirConfirmacion(titulo, texto, textoBoton, colorBoton, accion) {
   document.getElementById('confirmar-titulo').textContent = titulo;
@@ -586,8 +477,8 @@ function cambiarPestana(grupo, idPanel) {
   document.querySelectorAll(`[data-grupo="${grupo}"] [data-pestana]`).forEach((b) => {
     const activa = b.dataset.pestana === idPanel;
     b.className = activa
-      ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A]'
-      : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700';
+      ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition'
+      : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition';
   });
   document.querySelectorAll(`[data-panel="${grupo}"]`).forEach((p) => {
     p.classList.toggle('hidden', p.id !== idPanel);
@@ -601,7 +492,7 @@ let asesorIniciado = false;
 async function iniciarSolicitudes() {
   prepararDialogos();
   asesorIniciado = true;
-  await listarPendientesAsesor();
+  await cargarCitasAsesor();
   await listarProximasAsesor();
 }
 
@@ -619,6 +510,8 @@ const COLORES_ESTADO = {
   'Cancelada': 'bg-slate-200 text-slate-700',
   'Caducada': 'bg-orange-100 text-orange-700',
   'Realizada': 'bg-sky-100 text-sky-700',
+  'Evaluada': 'bg-emerald-100 text-emerald-800',
+  'Cerrada sin evaluar': 'bg-slate-100 text-slate-700',
   'No realizada': 'bg-red-100 text-red-700',
   'Sin registro': 'bg-gray-100 text-gray-600',
 };
@@ -722,7 +615,28 @@ function tarjetaCita(c, papel, tipo) {
     acciones.appendChild(envoltura);
   } else {
     aviso.remove();
-    acciones.remove();
+    // Ventana de 7 días para calificar cuando el asesor marcó Realizada (T20 / HU-009)
+    if (papel === 'Estudiante' && c.puede_calificar) {
+      const btnCalificar = document.createElement('button');
+      btnCalificar.type = 'button';
+      btnCalificar.textContent = '★ Calificar';
+      btnCalificar.className = 'px-4 py-2 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg shadow-sm transition';
+      btnCalificar.onclick = () => {
+        if (typeof window.abrirModalCalificar === 'function') {
+          window.abrirModalCalificar(c);
+        } else {
+          mostrarExito('Ventana de calificación activa (7 días).');
+        }
+      };
+      acciones.appendChild(btnCalificar);
+    } else if (c.puntuacion) {
+      const spanCalif = document.createElement('span');
+      spanCalif.className = 'text-xs font-bold text-amber-600';
+      spanCalif.textContent = `★ ${c.puntuacion} / 5`;
+      acciones.appendChild(spanCalif);
+    } else {
+      acciones.remove();
+    }
   }
 
   return tarjeta;
@@ -737,7 +651,7 @@ function pestanaVacia(texto) {
 }
 
 // ---------------------------------------------------------------------
-// listarMisCitas(): Pendientes, Próximas e Historial del estudiante
+// listarMisCitas(): Pendientes, Próximas e Historial del estudiante (T17)
 // ---------------------------------------------------------------------
 async function listarMisCitas() {
   const { data, error } = await db
@@ -774,9 +688,11 @@ async function listarMisCitas() {
   document.getElementById('est-vacio').classList.toggle('hidden', data.length > 0);
 }
 
-// Próximas del asesor: citas Aceptadas futuras, con botón Cancelar
+// Próximas del asesor: citas Aceptadas futuras, con botón Cancelar (T17)
 async function listarProximasAsesor() {
   const lista = document.getElementById('lista-proximas-asesor');
+  if (!lista) return;
+
   const { data, error } = await db
     .from('v_mis_citas')
     .select('*')
@@ -791,13 +707,17 @@ async function listarProximasAsesor() {
   lista.innerHTML = '';
   if (!proximas.length) lista.appendChild(pestanaVacia('No tienes citas próximas'));
   proximas.forEach((c) => lista.appendChild(tarjetaCita(c, 'Asesor', 'proxima')));
-  document.getElementById('contador-proximas-asesor').textContent = proximas.length;
+  const contador = document.getElementById('contador-proximas-asesor');
+  if (contador) contador.textContent = proximas.length;
 }
 
 // Recarga las vistas que estén abiertas
 async function recargarCitas() {
   if (estudianteIniciado) await listarMisCitas();
-  if (asesorIniciado) { await listarPendientesAsesor(); await listarProximasAsesor(); }
+  if (asesorIniciado) {
+    await cargarCitasAsesor();
+    await listarProximasAsesor();
+  }
 }
 
 // Llamada común a cancelar_asesoria; muestra el mensaje de la BD tal cual
@@ -849,8 +769,8 @@ async function iniciarMisCitasEstudiante() {
 }
 
 /* T15b. Requiere supabase.js, sesion.js y t15bSesionLista.
- * T15a: #grid-resultados, botones [data-id-franja], window.recargarBusqueda().
- * La reserva, el congelamiento y la notificación los hace la RPC, nunca el cliente.
+- T15a: #grid-resultados, botones [data-id-franja], window.recargarBusqueda().
+- La reserva, el congelamiento y la notificación los hace la RPC, nunca el cliente.
  */
 (() => {
   'use strict';
