@@ -125,7 +125,7 @@ async function cerrarSesion() {
 /* ---------------------------------------------------------
    iniciarPaginaProtegida(...roles)
    Hace todo en orden al cargar una página protegida:
-   sesión → rol → vencimientos → cabecera → menú → cerrar sesión.
+   sesión → rol → vencimientos → cabecera → menú → campana → cerrar sesión.
    Sin roles = cualquier usuario con sesión puede entrar.
    --------------------------------------------------------- */
 async function iniciarPaginaProtegida(...roles) {
@@ -141,6 +141,10 @@ async function iniciarPaginaProtegida(...roles) {
 
   pintarCabecera();
   await configurarMenu();
+
+  // T21 · RF-011: campana con el contador de avisos sin leer (js/notificaciones.js).
+  // Va después de procesar_vencimientos para contar también los avisos de caducidad.
+  if (typeof iniciarCampana === 'function') await iniciarCampana();
 
   const btnSalir = document.getElementById('btn-cerrar-sesion');
   if (btnSalir) btnSalir.addEventListener('click', cerrarSesion);
