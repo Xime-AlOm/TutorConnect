@@ -15,7 +15,7 @@ function fechaLocalISO(fecha = new Date()) {
 
 function obtenerRangoRapido(tipo) {
   const hoy = new Date();
-  const hasta = fechaLocalISO(hoy);
+  const hoyISO = fechaLocalISO(hoy);
 
   if (tipo === 'semana') {
     const diaSemana = hoy.getDay(); // 0 = domingo, 1 = lunes ... 6 = sábado
@@ -27,14 +27,17 @@ function obtenerRangoRapido(tipo) {
 
   if (tipo === 'mes') {
     const primeroMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    return { desde: fechaLocalISO(primeroMes), hasta };
+    const ultimoMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+    return { desde: fechaLocalISO(primeroMes), hasta: fechaLocalISO(ultimoMes) };
   }
 
-  // Por defecto: «Todo el semestre» (Agosto–Diciembre o Enero–Julio)
+  // «Todo el semestre» cubre de inicio a fin del semestre (incluye citas futuras agendadas)
   const anio = hoy.getFullYear();
   const mes = hoy.getMonth(); // 0-indexed (7 = agosto)
-  const inicioSemestre = mes >= 7 ? `${anio}-08-01` : `${anio}-01-15`;
-  return { desde: inicioSemestre, hasta };
+  if (mes >= 7) {
+    return { desde: `${anio}-08-01`, hasta: `${anio}-12-31`, hoy: hoyISO };
+  }
+  return { desde: `${anio}-01-15`, hasta: `${anio}-07-31`, hoy: hoyISO };
 }
 
 function formatearEstrellas(promedio) {
@@ -396,11 +399,11 @@ async function iniciarReportes() {
   });
 
   // Carga inicial por defecto: inicio del semestre a hoy
-  const inicial = obtenerRangoRapido('semestre');
-  inputDesde.value = inicial.desde;
-  inputHasta.value = inicial.hasta;
-  marcarBotonActivo('semestre');
+  const semestre = obtenerRangoRapido('semestre');
+  inputDesde.value = semestre.desde;
+  inputHasta.value = semestre.hoy;
+  marcarBotonActivo('');
 
-  await generarReporte(inicial.desde, inicial.hasta);
+  await generarReporte(semestre.desde, semestre.hoy);
   await cargarPromedioAsesores();
 }
