@@ -1,12 +1,14 @@
 // =====================================================================
 // js/solicitudes.js · Gestor de solicitudes y citas (SCR-005)
-// T16 · TC-19 · HU-006 · CU-004: el asesor acepta o rechaza solicitudes.
+// T16 · HU-006 · CU-004: aceptar o rechazar solicitudes.
 // T17 · TC-20 · HU-007: Mis citas del estudiante y cancelación (48 h).
-// (T15b agrega aquí solicitarAsesoria(idFranja); no se pisan.)
+// T20 · HU-008 · CU-005: cierre de la asesoría por el asesor (Realizada / No realizada).
 // Requiere: js/supabase.js (db, mostrarError, mostrarExito, mostrarCargando)
 // =====================================================================
 
 let pendientes = [];          // solicitudes pendientes del asesor
+let porCerrar = [];           // citas aceptadas del asesor con puede_marcar = true
+let completadas = [];         // citas concluidas del asesor (historial)
 let solicitudActual = null;   // solicitud que se está aceptando/rechazando
 let accionConfirmar = null;   // función a ejecutar al confirmar el diálogo
 
@@ -39,6 +41,30 @@ function fechaLimite(fecha, hora) {
   });
 }
 
+// Calcula el tiempo restante de las 48 h posteriores al fin de la cita (RN-09)
+function calcularTiempoRestanteCierre(fecha, horaInicio) {
+  const inicio = new Date(`${fecha}T${horaInicio}`);
+  const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
+  const limite48h = new Date(fin.getTime() + 48 * 60 * 60 * 1000);
+  const diffMs = limite48h.getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return { texto: 'Plazo vencido (pasará a Sin registro)', urgente: true };
+  }
+
+  const totalMin = Math.floor(diffMs / (60 * 1000));
+  const horas = Math.floor(totalMin / 60);
+  const minutos = totalMin % 60;
+  const fechaLimiteStr = limite48h.toLocaleString('es-MX', {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+
+  return {
+    texto: `Tienes ${horas} h ${minutos} min para cerrar (vence ${fechaLimiteStr}) antes de que pase a Sin registro.`,
+    urgente: horas < 6,
+  };
+}
+
 // ---------------------------------------------------------------------
 // validarUrl(url): obligatorio y debe empezar con https://
 // ---------------------------------------------------------------------
@@ -54,41 +80,84 @@ function validarUrl(url) {
 }
 
 // ---------------------------------------------------------------------
-// listarPendientesAsesor(): solicitudes Pendientes donde soy el asesor
+// Carga de citas del Asesor: Pendientes (T16), Por cerrar (T20) y Completadas (T20)
 // ---------------------------------------------------------------------
-async function listarPendientesAsesor() {
-  const lista = document.getElementById('lista-pendientes');
-  lista.innerHTML = '<div class="h-20 rounded-xl bg-slate-100 animate-pulse"></div>'.repeat(2);
+async function cargarCitasAsesor() {
+  const listaPend = document.getElementById('lista-pendientes');
+  const listaCerrar = document.getElementById('lista-por-cerrar');
+  const skeleton = '<div class="h-24 rounded-xl bg-slate-100 animate-pulse"></div>'.repeat(2);
+
+  if (listaPend) listaPend.innerHTML = skeleton;
+  if (listaCerrar) listaCerrar.innerHTML = skeleton;
 
   const { data, error } = await db
     .from('v_mis_citas')
     .select('*')
     .eq('mi_papel', 'Asesor')
-    .eq('estado', 'Pendiente')
-    .order('fecha')
-    .order('hora_inicio');
+    .order('fecha', { ascending: false })
+    .order('hora_inicio', { ascending: false });
 
-  if (error) { lista.innerHTML = ''; mostrarError(error.message); return; }
+  if (error) {
+    if (listaPend) listaPend.innerHTML = '';
+    if (listaCerrar) listaCerrar.innerHTML = '';
+    mostrarError(error.message);
+    return;
+  }
 
-  pendientes = data;
-  document.getElementById('contador-pendientes').textContent = data.length;
+  const citasAsesor = data || [];
+
+  // 1. Pendientes por aceptar/rechazar (T16)
+  pendientes = citasAsesor
+    .filter((s) => s.estado === 'Pendiente')
+    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
+
+  // 2. Por cerrar: estado = 'Aceptada', usuario es asesor y now() >= fin (puede_marcar = true) (T20)
+  porCerrar = citasAsesor
+    .filter((s) => s.puede_marcar === true)
+    .sort((a, b) => `${a.fecha}T${a.hora_inicio}`.localeCompare(`${b.fecha}T${b.hora_inicio}`));
+
+  // 3. Completadas / Historial del asesor (T20)
+  const estadosFinales = ['Realizada', 'No realizada', 'Sin registro', 'Rechazada', 'Cancelada', 'Caducada'];
+  completadas = citasAsesor.filter((s) => estadosFinales.includes(s.estado));
+
+  // Actualizar contadores de pestañas
+  const cPend = document.getElementById('contador-pendientes');
+  const cCerrar = document.getElementById('contador-por-cerrar');
+  const cComp = document.getElementById('contador-completadas');
+  if (cPend) cPend.textContent = pendientes.length;
+  if (cCerrar) cCerrar.textContent = porCerrar.length;
+  if (cComp) cComp.textContent = completadas.length;
+
   pintarPendientes();
+  pintarPorCerrar();
+  pintarCompletadas();
 }
 
+// Alias compatible con llamadas previas de T16
+async function listarPendientesAsesor() {
+  await cargarCitasAsesor();
+}
+
+// ---------------------------------------------------------------------
+// Renderizado: 1. Pendientes del asesor (T16)
+// ---------------------------------------------------------------------
 function pintarPendientes() {
   const lista = document.getElementById('lista-pendientes');
   const vacio = document.getElementById('pendientes-vacio');
+  if (!lista) return;
+
   lista.innerHTML = '';
-  vacio.classList.toggle('hidden', pendientes.length > 0);
+  if (vacio) vacio.classList.toggle('hidden', pendientes.length > 0);
 
   pendientes.forEach((s) => {
     const esVirtual = s.modalidad === 'Virtual';
     const tarjeta = document.createElement('div');
     tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+
     tarjeta.innerHTML = `
       <div class="space-y-1">
         <h3 class="text-sm font-bold text-slate-900"><span data-campo="estudiante"></span> • <span data-campo="materia"></span></h3>
-        <p class="text-xs text-slate-600 capitalize-first">
+        <p class="text-xs text-slate-600">
           <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)} •
           <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${esVirtual ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
         </p>
@@ -100,11 +169,11 @@ function pintarPendientes() {
         <button data-accion="aceptar" class="flex-1 md:flex-none px-5 py-2.5 bg-[#1B396A] text-white text-xs font-semibold rounded-lg hover:bg-[#13274A] transition shadow-sm">${esVirtual ? 'Aceptar y adjuntar enlace' : 'Aceptar'}</button>
       </div>`;
 
-    // textContent para no inyectar HTML con datos de la BD
     tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
     tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
     const f = formatearFecha(s.fecha);
     tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+
     const ubic = tarjeta.querySelector('[data-campo="ubicacion"]');
     if (!esVirtual && s.ubicacion_presencial) ubic.textContent = `Ubicación: ${s.ubicacion_presencial}`;
     else ubic.remove();
@@ -129,9 +198,155 @@ function pintarPendientes() {
 }
 
 // ---------------------------------------------------------------------
-// Llamada común a resolver_solicitud. Se usa db.rpc (como ejecutar) para
-// saber si hubo error aunque la función no devuelva datos.
-// Los mensajes de la BD se muestran tal cual.
+// Renderizado: 2. Por cerrar (T20 · CU-005 · puede_marcar = true)
+// ---------------------------------------------------------------------
+function pintarPorCerrar() {
+  const lista = document.getElementById('lista-por-cerrar');
+  const vacio = document.getElementById('por-cerrar-vacio');
+  if (!lista) return;
+
+  lista.innerHTML = '';
+  if (vacio) vacio.classList.toggle('hidden', porCerrar.length > 0);
+
+  porCerrar.forEach((s) => {
+    const esVirtual = s.modalidad === 'Virtual';
+    const plazo = calcularTiempoRestanteCierre(s.fecha, s.hora_inicio);
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+    tarjeta.innerHTML = `
+      <div class="space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">Concluida · Por cerrar</span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${esVirtual ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">${esVirtual ? '💻 Virtual' : '📍 Presencial'}</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">
+          <span data-campo="estudiante"></span> • <span data-campo="materia"></span>
+        </h3>
+        <p class="text-xs text-slate-600">
+          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)}
+        </p>
+        <p class="text-xs font-semibold ${plazo.urgente ? 'text-rose-700' : 'text-amber-700'} flex items-center gap-1.5">
+          <span>⏳</span>
+          <span data-campo="aviso-plazo"></span>
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
+        <button type="button" data-accion="no-realizada"
+                class="w-full sm:w-auto px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+          No realizada
+        </button>
+        <button type="button" data-accion="realizada"
+                class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+          Realizada
+        </button>
+      </div>`;
+
+    // textContent para evitar inyección HTML
+    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
+    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
+    const f = formatearFecha(s.fecha);
+    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+    tarjeta.querySelector('[data-campo="aviso-plazo"]').textContent = plazo.texto;
+
+    // Botón «Realizada» (verde)
+    tarjeta.querySelector('[data-accion="realizada"]').onclick = (e) => {
+      marcarResultado(s.id_solicitud_asesoria, true, e.currentTarget);
+    };
+
+    // Botón «No realizada» (gris) con confirmación reglamentaria
+    tarjeta.querySelector('[data-accion="no-realizada"]').onclick = () => {
+      pedirConfirmacion(
+        'Marcar como no realizada',
+        'Se registrará solo para estadística; no afecta a nadie.',
+        'Confirmar',
+        'bg-slate-600 hover:bg-slate-700',
+        (boton) => marcarResultado(s.id_solicitud_asesoria, false, boton),
+      );
+    };
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Renderizado: 3. Completadas / Historial del asesor (T20)
+// ---------------------------------------------------------------------
+function pintarCompletadas() {
+  const lista = document.getElementById('lista-completadas');
+  const vacio = document.getElementById('completadas-vacio');
+  if (!lista) return;
+
+  lista.innerHTML = '';
+  if (vacio) vacio.classList.toggle('hidden', completadas.length > 0);
+
+  completadas.forEach((s) => {
+    const estadoLabel = s.estado_mostrado || s.estado;
+    const badgeClass = COLORES_ESTADO[estadoLabel] || COLORES_ESTADO[s.estado] || 'bg-slate-100 text-slate-700';
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4';
+    tarjeta.innerHTML = `
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${badgeClass}" data-campo="estado"></span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900"><span data-campo="estudiante"></span> • <span data-campo="materia"></span></h3>
+        <p class="text-xs text-slate-600">
+          <span data-campo="fecha"></span> • ${formatearHora(s.hora_inicio)} – ${horaFin(s.hora_inicio)}
+        </p>
+      </div>
+      <div class="flex items-center gap-3" data-lado-derecho></div>`;
+
+    tarjeta.querySelector('[data-campo="estado"]').textContent = estadoLabel;
+    tarjeta.querySelector('[data-campo="estudiante"]').textContent = s.estudiante;
+    tarjeta.querySelector('[data-campo="materia"]').textContent = s.nombre_materia;
+    const f = formatearFecha(s.fecha);
+    tarjeta.querySelector('[data-campo="fecha"]').textContent = f.charAt(0).toUpperCase() + f.slice(1);
+
+    const derecho = tarjeta.querySelector('[data-lado-derecho]');
+    if (s.puntuacion) {
+      const spanCalif = document.createElement('span');
+      spanCalif.className = 'text-xs font-bold text-amber-600';
+      spanCalif.textContent = `★ ${s.puntuacion} / 5`;
+      derecho.appendChild(spanCalif);
+    }
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+// ---------------------------------------------------------------------
+// CU-005 · marcarResultado(id, realizada): cierra la cita como Realizada o No realizada
+// ---------------------------------------------------------------------
+async function marcarResultado(id, realizada, boton) {
+  mostrarCargando(boton, true);
+  try {
+    // Llamada directa a db.rpc (igual que ejecutar) para validar error en funciones VOID
+    // y mostrar tal cual los mensajes de la base de datos:
+    // «La asesoría aún no termina.», «Solo se cierran asesorías aceptadas (<estado>).», «Esta asesoría no es tuya.»
+    const { error } = await db.rpc('marcar_resultado', {
+      p_id: id,
+      p_realizada: realizada,
+    });
+
+    cerrarConfirmacion();
+
+    if (error) {
+      mostrarError(error.message);
+      return false;
+    }
+
+    mostrarExito(realizada ? 'Asesoría marcada como realizada' : 'Asesoría marcada como no realizada');
+    await recargarCitas();
+    return true;
+  } finally {
+    mostrarCargando(boton, false);
+  }
+}
+
+// ---------------------------------------------------------------------
+// Llamada común a resolver_solicitud (T16)
 // ---------------------------------------------------------------------
 async function resolver(id, aceptar, url) {
   const { error } = await db.rpc('resolver_solicitud', {
@@ -152,7 +367,7 @@ async function aceptarSolicitud(id, url, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Asesoría aceptada');
-    await listarPendientesAsesor();
+    await recargarCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -166,7 +381,7 @@ async function rechazarSolicitud(id, boton) {
     cerrarConfirmacion();
     if (!ok) return;
     mostrarExito('Solicitud rechazada');
-    await listarPendientesAsesor();
+    await recargarCitas();
   } finally {
     mostrarCargando(boton, false);
   }
@@ -205,7 +420,7 @@ function actualizarValidacionUrl() {
 }
 
 // ---------------------------------------------------------------------
-// Diálogo de confirmación reutilizable (aceptar presencial / rechazar)
+// Diálogo de confirmación reutilizable (aceptar presencial / rechazar / cancelar / no realizada)
 // ---------------------------------------------------------------------
 function pedirConfirmacion(titulo, texto, textoBoton, colorBoton, accion) {
   document.getElementById('confirmar-titulo').textContent = titulo;
@@ -262,8 +477,8 @@ function cambiarPestana(grupo, idPanel) {
   document.querySelectorAll(`[data-grupo="${grupo}"] [data-pestana]`).forEach((b) => {
     const activa = b.dataset.pestana === idPanel;
     b.className = activa
-      ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A]'
-      : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700';
+      ? 'pb-3 text-sm font-bold text-[#1B396A] border-b-2 border-[#1B396A] transition'
+      : 'pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition';
   });
   document.querySelectorAll(`[data-panel="${grupo}"]`).forEach((p) => {
     p.classList.toggle('hidden', p.id !== idPanel);
@@ -277,7 +492,7 @@ let asesorIniciado = false;
 async function iniciarSolicitudes() {
   prepararDialogos();
   asesorIniciado = true;
-  await listarPendientesAsesor();
+  await cargarCitasAsesor();
   await listarProximasAsesor();
 }
 
@@ -295,6 +510,8 @@ const COLORES_ESTADO = {
   'Cancelada': 'bg-slate-200 text-slate-700',
   'Caducada': 'bg-orange-100 text-orange-700',
   'Realizada': 'bg-sky-100 text-sky-700',
+  'Evaluada': 'bg-emerald-100 text-emerald-800',
+  'Cerrada sin evaluar': 'bg-slate-100 text-slate-700',
   'No realizada': 'bg-red-100 text-red-700',
   'Sin registro': 'bg-gray-100 text-gray-600',
 };
@@ -398,7 +615,28 @@ function tarjetaCita(c, papel, tipo) {
     acciones.appendChild(envoltura);
   } else {
     aviso.remove();
-    acciones.remove();
+    // Ventana de 7 días para calificar cuando el asesor marcó Realizada (T20 / HU-009)
+    if (papel === 'Estudiante' && c.puede_calificar) {
+      const btnCalificar = document.createElement('button');
+      btnCalificar.type = 'button';
+      btnCalificar.textContent = '★ Calificar';
+      btnCalificar.className = 'px-4 py-2 bg-[#1B396A] hover:bg-[#13274A] text-white text-xs font-semibold rounded-lg shadow-sm transition';
+      btnCalificar.onclick = () => {
+        if (typeof window.abrirModalCalificar === 'function') {
+          window.abrirModalCalificar(c);
+        } else {
+          mostrarExito('Ventana de calificación activa (7 días).');
+        }
+      };
+      acciones.appendChild(btnCalificar);
+    } else if (c.puntuacion) {
+      const spanCalif = document.createElement('span');
+      spanCalif.className = 'text-xs font-bold text-amber-600';
+      spanCalif.textContent = `★ ${c.puntuacion} / 5`;
+      acciones.appendChild(spanCalif);
+    } else {
+      acciones.remove();
+    }
   }
 
   return tarjeta;
@@ -413,7 +651,7 @@ function pestanaVacia(texto) {
 }
 
 // ---------------------------------------------------------------------
-// listarMisCitas(): Pendientes, Próximas e Historial del estudiante
+// listarMisCitas(): Pendientes, Próximas e Historial del estudiante (T17)
 // ---------------------------------------------------------------------
 async function listarMisCitas() {
   const { data, error } = await db
@@ -450,9 +688,11 @@ async function listarMisCitas() {
   document.getElementById('est-vacio').classList.toggle('hidden', data.length > 0);
 }
 
-// Próximas del asesor: citas Aceptadas futuras, con botón Cancelar
+// Próximas del asesor: citas Aceptadas futuras, con botón Cancelar (T17)
 async function listarProximasAsesor() {
   const lista = document.getElementById('lista-proximas-asesor');
+  if (!lista) return;
+
   const { data, error } = await db
     .from('v_mis_citas')
     .select('*')
@@ -467,13 +707,17 @@ async function listarProximasAsesor() {
   lista.innerHTML = '';
   if (!proximas.length) lista.appendChild(pestanaVacia('No tienes citas próximas'));
   proximas.forEach((c) => lista.appendChild(tarjetaCita(c, 'Asesor', 'proxima')));
-  document.getElementById('contador-proximas-asesor').textContent = proximas.length;
+  const contador = document.getElementById('contador-proximas-asesor');
+  if (contador) contador.textContent = proximas.length;
 }
 
 // Recarga las vistas que estén abiertas
 async function recargarCitas() {
   if (estudianteIniciado) await listarMisCitas();
-  if (asesorIniciado) { await listarPendientesAsesor(); await listarProximasAsesor(); }
+  if (asesorIniciado) {
+    await cargarCitasAsesor();
+    await listarProximasAsesor();
+  }
 }
 
 // Llamada común a cancelar_asesoria; muestra el mensaje de la BD tal cual
@@ -525,8 +769,8 @@ async function iniciarMisCitasEstudiante() {
 }
 
 /* T15b. Requiere supabase.js, sesion.js y t15bSesionLista.
- * T15a: #grid-resultados, botones [data-id-franja], window.recargarBusqueda().
- * La reserva, el congelamiento y la notificación los hace la RPC, nunca el cliente.
+- T15a: #grid-resultados, botones [data-id-franja], window.recargarBusqueda().
+- La reserva, el congelamiento y la notificación los hace la RPC, nunca el cliente.
  */
 (() => {
   'use strict';
